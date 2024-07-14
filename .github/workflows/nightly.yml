@@ -18,10 +18,9 @@ jobs:
     - name: Install LDC
       run: curl -fsS https://dlang.org/install.sh | bash -s ldc && ls ~/dlang/ && source ~/dlang/ldc*/activate
     - name: Build DCD
-      # run: source ~/dlang/ldc*/activate && make build-dcd-release
-      run: source ~/dlang/ldc*/activate && cd dcd_templates && make ldclibserver
+      run: source ~/dlang/ldc*/activate && make build-dcd-release
     - name: Build DLS
-      run: source ~/dlang/ldc*/activate && cp dcd_templates/bin/libdcd.a server/dls && make build-dls-release
+      run: source ~/dlang/ldc*/activate && make build-dls-release
     - name: Move to Dist
       run: |
         mkdir dist
