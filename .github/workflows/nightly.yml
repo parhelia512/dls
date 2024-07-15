@@ -52,9 +52,12 @@ jobs:
     - name: Move to Dist
       shell: cmd
       run: | 
-        mkdir dist
+        mkdir dist/
+        dir
+        dir bin/
         move bin/dls.exe dist/
-        cd dist
+        cd dist/
+        dir
         ren dls.exe dls-x86_64-pc-windows-msvc.exe
     - name: Upload artifacts
       uses: actions/upload-artifact@v2
