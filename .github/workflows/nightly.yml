@@ -58,7 +58,7 @@ jobs:
         dir
         dir bin
         echo "-- move dls.exe to dist"
-        move bin/dls.exe dist/
+        move bin\dls.exe dist/
         cd dist
         echo "-- debug"
         dir
