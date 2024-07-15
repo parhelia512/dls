@@ -22,7 +22,7 @@ import dls.definition;
 version (linux)
     pragma(lib, "server/dls/libdcd.a");
 else version(Windows)
-    pragma(lib, "server/dls/libdcd.lib");
+    pragma(lib, "server/dls/dcd.lib");
 else
     static assert(0, "platform not yet supported");
 
