@@ -5,7 +5,7 @@ if "%1" == "dcd" (
 
     cd dcd_templates/
     dub build --compiler=ldc2 -b release -c library
-    move dcd_templates/libdcd.lib server/dls/
+    move libdcd.lib ../server/dls/
 ) 
 
 if "%1" == "dls" (
