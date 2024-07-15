@@ -53,13 +53,13 @@ jobs:
       shell: cmd
       run: | 
         echo "-- create dist folder"
-        mkdir dist/
+        mkdir dist
         echo "-- debug"
         dir
-        dir bin/
+        dir bin
         echo "-- move dls.exe to dist"
         move bin/dls.exe dist/
-        cd dist/
+        cd dist
         echo "-- debug"
         dir
         echo "rename dls.exe"
