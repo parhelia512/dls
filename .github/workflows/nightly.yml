@@ -52,12 +52,17 @@ jobs:
     - name: Move to Dist
       shell: cmd
       run: | 
+        echo "-- create dist folder"
         mkdir dist/
+        echo "-- debug"
         dir
         dir bin/
+        echo "-- move dls.exe to dist"
         move bin/dls.exe dist/
         cd dist/
+        echo "-- debug"
         dir
+        echo "rename dls.exe"
         ren dls.exe dls-x86_64-pc-windows-msvc.exe
     - name: Upload artifacts
       uses: actions/upload-artifact@v2
