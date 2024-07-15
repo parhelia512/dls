@@ -19,7 +19,12 @@ import dls.document_symbols;
 import dls.definition;
 //import dls.semantic_tokens;
 
-pragma(lib, "server/dls/libdcd.a");
+version (linux)
+    pragma(lib, "server/dls/libdcd.a");
+else version(Windows)
+    pragma(lib, "server/dls/libdcd.lib");
+else
+    static assert(0, "platform not yet supported")
 
 
 __gshared:
@@ -39,11 +44,26 @@ extern(C) void main(int argc, char** argv) {
     // TODO: remove this
     //  - auto detect dmd/ldc
     //  - config for other folders
-    string[3] importPaths = [
-        "/usr/include/dlang/dmd/",
-        "/usr/include/dmd/druntime/import/",
-        "/usr/include/dmd/phobos/",
-    ];
+
+    version(linux)
+    {
+        string[3] importPaths = [
+            "/usr/include/dlang/dmd/",
+            "/usr/include/dmd/druntime/import/",
+            "/usr/include/dmd/phobos/",
+        ];
+    }
+    else version(Windows)
+    {
+        string[3] importPaths = [
+            "c:/D/dmd2/src/druntime/import/",
+            "c:/D/dmd2/src/phobos/",
+        ];
+    }
+    else version(darwin)
+    {
+        static assert(0, "i need to investigate where to find the paths");
+    }
     string[] extraImports;
 
     LINFO("args: {} -> {}", argc, argv);
@@ -338,7 +358,7 @@ void lsp_send_response(int id, cjson.cJSON* result) {
 
 
 
-    //LINFO("sent:\n{}", buffer);
+    LINFO("sent:\n{}", buffer);
 }
 
 
