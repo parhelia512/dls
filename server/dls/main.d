@@ -56,7 +56,7 @@ extern(C) void main(int argc, char** argv) {
     }
     else version(Windows)
     {
-        string[3] importPaths = [
+        string[2] importPaths = [
             "c:/D/dmd2/src/druntime/import/",
             "c:/D/dmd2/src/phobos/",
         ];
