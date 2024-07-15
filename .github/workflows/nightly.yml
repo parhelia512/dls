@@ -92,12 +92,21 @@ jobs:
       with:
         name: dist-x86_64-unknown-linux-gnu
         path: dist
+
+    - uses: actions/download-artifact@v2
+      with:
+        name: dist-x86_64-pc-windows-msvc
+        path: dist
+
     - run: |
         ls -al ./dist
         cd dist
 
         chmod +x dls-x86_64-unknown-linux-gnu
         zip -r dls-x86_64-unknown-linux-gnu.zip dls-x86_64-unknown-linux-gnu
+
+        zip -r dls-x86_64-pc-windows-msvc.zip dls-x86_64-pc-windows-msvc.exe builtin
+
 
     - name: Publish Release
       uses: ./.github/actions/github-release
