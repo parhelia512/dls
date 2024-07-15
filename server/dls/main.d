@@ -24,10 +24,11 @@ version (linux)
 else version(Windows)
     pragma(lib, "server/dls/libdcd.lib");
 else
-    static assert(0, "platform not yet supported")
+    static assert(0, "platform not yet supported");
 
 
 __gshared:
+
 mem.ArenaAllocator arena;
 char[] dbg;
 

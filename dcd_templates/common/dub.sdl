@@ -1,5 +1,4 @@
 name "common"
-stringImportPaths "../bin"
 
 sourcePaths "src"
 importPaths "src"
