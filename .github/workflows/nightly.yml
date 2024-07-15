@@ -66,7 +66,7 @@ jobs:
     name: publish
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    needs: ['dist-x86_64-unknown-linux-gnu']
+    needs: ['dist-x86_64-unknown-linux-gnu', 'dist-x86_64-pc-windows-msvc']
     steps:
     - name: Install Nodejs
       uses: actions/setup-node@v1
