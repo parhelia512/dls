@@ -11,6 +11,6 @@ if "%1" == "dcd" (
 
 if "%1" == "dls" (
 
-    ldmd2 -of=bin/dls.exe -O2 -L/OPT:REF -preview=rvaluerefparam -preview=bitfields -i -Iserver/ \
+    ldmd2 -of=bin/dls.exe -O2 -L/OPT:REF -preview=rvaluerefparam -preview=bitfields -i -Iserver/ ^
     server/cjson/cJSON.c server/dls/main.d server/dls/libdcd.lib
 ) 
