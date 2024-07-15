@@ -37,9 +37,14 @@
 #pragma warning (disable : 4001)
 #endif
 
+
+#ifndef __builtin_isinf_sign
+#define __builtin_isinf_sign __isinf
+#endif
+
 #include <string.h>
 #include <stdio.h>
-// #include <math.h>
+#include <math.h>
 #include <stdlib.h>
 #include <limits.h>
 #include <ctype.h>
@@ -540,13 +545,6 @@ static void update_offset(printbuffer * const buffer)
     buffer_pointer = buffer->buffer + buffer->offset;
 
     buffer->offset += strlen((const char*)buffer_pointer);
-}
-
-static double fabs(double x)
-{
-    union {double f; unsigned long long i;} u = {x};
-    u.i &= -1ULL/2;
-    return u.f;
 }
 
 /* securely comparison of floating-point variables */
