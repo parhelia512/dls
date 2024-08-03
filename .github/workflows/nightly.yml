@@ -108,6 +108,10 @@ jobs:
         zip -r dls-x86_64-windows.zip dls-x86_64-windows.exe builtin
 
 
+        rm dls-x86_64-linux
+        rm dls-x86_64-windows
+
+
     - name: Publish Release
       uses: ./.github/actions/github-release
       with:
