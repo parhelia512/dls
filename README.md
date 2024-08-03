@@ -22,9 +22,7 @@ make build-dls
 
 - VSCode:
 
-```
-make build-vscode
-```
+    - `make build-vscode`
 
 ```json5
     "dls.server.path":  "/home/ryuukk/dev/dls/bin/dls",
