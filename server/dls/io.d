@@ -21,8 +21,8 @@ struct BUFFER {
     char* content;
 }
 
-BUFFER[BUFFER_LENGTH] buffers;
-int first_empty_buf;
+__gshared BUFFER[BUFFER_LENGTH] buffers;
+__gshared int first_empty_buf;
 
 BUFFER open_buffer(const char * uri, const char * content) {
     if (first_empty_buf >= BUFFER_LENGTH) {

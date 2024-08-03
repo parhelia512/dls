@@ -1,6 +1,8 @@
 module dls.dcd;
 
-extern(C) void dcd_init(string[] importPaths);
+// public import dcd.server.dll;
+
+extern(C) void dcd_init();
 extern(C) void dcd_add_imports(string[] importPaths);
 extern(C) void dcd_clear(string[] importPaths);
 

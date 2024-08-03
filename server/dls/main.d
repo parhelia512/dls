@@ -4,7 +4,12 @@ import rt.dbg;
 import str = rt.str;
 import args = rt.args;
 import mem = rt.memz;
-import cjson = cjson;
+import fs = rt.filesystem;
+
+struct C
+{
+    public import cjson;
+}
 
 import core.stdc.stdio;
 import core.stdc.stdlib;
@@ -39,75 +44,31 @@ extern(C) void* j_alloc(size_t sz) {
 extern(C) void j_free(void* ptr) {
 }
 
+
+
 extern(C) void main(int argc, char** argv) {
     arena = mem.ArenaAllocator.create(mem.c_allocator);
-
     // TODO: remove this
     //  - auto detect dmd/ldc
     //  - config for other folders
 
-    version(linux)
-    {
-        string[3] importPaths = [
-            "/usr/include/dlang/dmd/",
-            "/usr/include/dmd/druntime/import/",
-            "/usr/include/dmd/phobos/",
-        ];
-    }
-    else version(Windows)
-    {
-        string[2] importPaths = [
-            "c:/D/dmd2/src/druntime/import/",
-            "c:/D/dmd2/src/phobos/",
-        ];
-    }
-    else version(darwin)
-    {
-        static assert(0, "i need to investigate where to find the paths");
-    }
-    string[] extraImports;
-
-    LINFO("args: {} -> {}", argc, argv);
-
-    for (int i = 0; i < argc;i++)
-    {
-        auto arg = argv[i];
-        auto argStr = arg[0 .. strlen(arg)];
-        LINFO("arg: {} -> {}", i, argv[i]);
-        if (mem.starts_with(argStr, "--imports="))
-        {
-            auto list = str.split_alloc(arena.allocator(), argStr[10 .. $], ",");
-            if (list.length > 0)
-            {
-                extraImports = arena.allocator().alloc!(string)(list.length);
-                for (int j = 0; j < list.length; j++)
-                {
-                    extraImports[j] = cast(string) list[j];
-                }
-            }
-        }
-    }
-
-
-    dcd_init(importPaths);
-    dcd_add_imports(extraImports);
-
-    cjson.cJSON_Hooks hooks;
+    C.cJSON_Hooks hooks;
     hooks.malloc_fn = &j_alloc;
     hooks.free_fn = &j_free;
-    cjson.cJSON_InitHooks(&hooks);
+    C.cJSON_InitHooks(&hooks);
+
 
      //test
     //{
-    //    cjson.cJSON* request = cjson.cJSON_Parse(TEST_DIDOPEN.ptr);
+    //    C.cJSON* request = C.cJSON_Parse(TEST_DIDOPEN.ptr);
     //    handle_request(request);
     //}
     //{
-    //    cjson.cJSON* request = cjson.cJSON_Parse(TEST_DIDCHANGE.ptr);
+    //    C.cJSON* request = C.cJSON_Parse(TEST_DIDCHANGE.ptr);
     //    handle_request(request);
     //}
     //{
-    //    cjson.cJSON* request = cjson.cJSON_Parse(TEST_COMPLETION.ptr);
+    //    C.cJSON* request = C.cJSON_Parse(TEST_COMPLETION.ptr);
     //    handle_request(request);
     //}
     //{
@@ -154,7 +115,7 @@ size_t parse_header() {
     return 0;
 }
 
-cjson.cJSON* parse_content(mem.Allocator alloc, size_t content_length) {
+C.cJSON* parse_content(mem.Allocator alloc, size_t content_length) {
     char[] buffer = alloc.alloc!(char)(content_length + 1);
     buffer[] = '\0';
     if (buffer == null) {
@@ -170,33 +131,36 @@ cjson.cJSON* parse_content(mem.Allocator alloc, size_t content_length) {
 
     //LINFO("content:\n{}", buffer);
 
-    auto request = cjson.cJSON_Parse(buffer.ptr);
+    auto request = C.cJSON_Parse(buffer.ptr);
     return request;
 }
 
-void handle_request(cjson.cJSON* request) {
+void handle_request(C.cJSON* request) {
     int id = -1;
     char* method;
 
-    auto method_json = cjson.cJSON_GetObjectItem(request, "method");
-    if (!cjson.cJSON_IsString(method_json)) {
+    auto method_json = C.cJSON_GetObjectItem(request, "method");
+    if (!C.cJSON_IsString(method_json)) {
         LERRO("not a str");
         exit(1);
     }
     method = method_json.valuestring;
 
-    auto id_json = cjson.cJSON_GetObjectItem(request, "id");
-    if (cjson.cJSON_IsNumber(id_json)) {
+    auto id_json = C.cJSON_GetObjectItem(request, "id");
+    if (C.cJSON_IsNumber(id_json)) {
         id = id_json.valueint;
     }
 
-    auto params_json = cjson.cJSON_GetObjectItem(request, "params");
+    auto params_json = C.cJSON_GetObjectItem(request, "params");
 
      LINFO("request id: {} -> method: {}", id, method);
 
     // RPC
     if (strcmp(method, "initialize") == 0) {
         lsp_initialize(id);
+        lsp_initialize_params(id, params_json);
+    } else if (strcmp(method, "initialized") == 0) {
+
     } else if (strcmp(method, "shutdown") == 0) {
         lsp_shutdown(id);
     } else if (strcmp(method, "exit") == 0) {
@@ -236,6 +200,98 @@ void handle_request(cjson.cJSON* request) {
 }
 
 
+void lsp_initialize_params(int id, C.cJSON* params_json)
+{
+    //char* output = C.cJSON_Print(params_json);
+    //LINFO("lsp_initialize_params:\n{}", output);
+
+    auto rootPath_json = C.cJSON_GetObjectItem(params_json, "rootPath");
+    if (!rootPath_json)
+    {
+        LWARN("no rootPath");
+        return;
+    }
+
+    auto initializeOptions_json = C.cJSON_GetObjectItem(params_json, "initializationOptions");
+    if (!initializeOptions_json)
+    {
+        LWARN("no initializationOptions");
+        return;
+    }
+
+
+    auto importPaths_json = C.cJSON_GetObjectItem(initializeOptions_json, "importPaths");
+    if (!importPaths_json)
+    {
+        LWARN("no importPaths");
+        return;
+    }
+
+
+    version(linux)
+    {
+        string[3] importPaths = [
+            "/usr/include/dlang/dmd/",
+            "/usr/include/dmd/druntime/import/",
+            "/usr/include/dmd/phobos/",
+        ];
+    }
+    else version(Windows)
+    {
+        string[2] importPaths = [
+            "c:/D/dmd2/src/druntime/import/",
+            "c:/D/dmd2/src/phobos/",
+        ];
+    }
+    dcd_init();
+
+
+    auto rootPath = C.cJSON_GetStringValue(rootPath_json);
+    auto L_r = strlen(rootPath);
+    auto rootPathStr = cast(string) rootPath[0 .. L_r];
+
+
+
+    string[] extraImports;
+    int size = C.cJSON_GetArraySize(importPaths_json);
+    LINFO("root path: {}", rootPath);
+    LINFO("import paths: {}", size);
+
+    extraImports = arena.allocator().alloc!(string)(size);
+    for (int i = 0; i < size; i++)
+    {
+        auto item = C.cJSON_GetArrayItem(importPaths_json, i);
+        auto str = C.cJSON_GetStringValue(item);
+        auto L_it = strlen(str);
+
+        LINFO("path: {}  {}/{}", str, L_it, L_r);
+
+        if (L_it > 1)
+        {
+            if (str[0] == '/' || str[1] == ':')
+            {
+                extraImports[i] = cast(string) str[0 .. strlen(str)];
+                LINFO("adding import: {}", extraImports[i]);
+            }
+            else
+            {
+                // concat
+                auto path = fs.make_path( rootPathStr, cast(string) str[0 .. L_it] );
+                auto pathBuffer = mem.dupe(arena.allocator(), path);
+                auto pathStr = cast(string) pathBuffer[0 .. strlen(pathBuffer.ptr)];
+
+                extraImports[i] = pathStr;
+
+
+                LINFO("adding import: {}", extraImports[i]);
+            }
+        }
+    }
+    dcd_add_imports(importPaths);
+    dcd_add_imports(extraImports);
+}
+
+
 void lsp_shutdown(int id) {
     LERRO("lsp_shutdown");
     lsp_send_response(id, null);
@@ -249,21 +305,21 @@ void lsp_exit() {
 
 
 
-void lsp_imports(int id, cjson.cJSON* params_json) {
-    char* output = cjson.cJSON_Print(params_json);
+void lsp_imports(int id, C.cJSON* params_json) {
+    char* output = C.cJSON_Print(params_json);
 
     LINFO("lsp_imports:\n{}", output);
 }
 
 
-void lsp_sync_open(cjson.cJSON* params_json) {
-    auto text_document_json = cjson.cJSON_GetObjectItem(params_json, "textDocument");
+void lsp_sync_open(C.cJSON* params_json) {
+    auto text_document_json = C.cJSON_GetObjectItem(params_json, "textDocument");
 
-    auto uri_json = cjson.cJSON_GetObjectItem(text_document_json, "uri");
-    char* uri = cjson.cJSON_GetStringValue(uri_json);
+    auto uri_json = C.cJSON_GetObjectItem(text_document_json, "uri");
+    char* uri = C.cJSON_GetStringValue(uri_json);
 
-    auto text_json = cjson.cJSON_GetObjectItem(text_document_json, "text");
-    char* text = cjson.cJSON_GetStringValue(text_json);
+    auto text_json = C.cJSON_GetObjectItem(text_document_json, "text");
+    char* text = C.cJSON_GetStringValue(text_json);
 
     if (uri == null || text == null) {
         LERRO("");
@@ -273,16 +329,16 @@ void lsp_sync_open(cjson.cJSON* params_json) {
     BUFFER buffer = open_buffer(uri, text);
     //lsp_lint(buffer);
 }
-void lsp_sync_change(cjson.cJSON* params_json) {
-    auto text_document_json = cjson.cJSON_GetObjectItem(params_json, "textDocument");
+void lsp_sync_change(C.cJSON* params_json) {
+    auto text_document_json = C.cJSON_GetObjectItem(params_json, "textDocument");
 
-    auto uri_json = cjson.cJSON_GetObjectItem(text_document_json, "uri");
-    char* uri = cjson.cJSON_GetStringValue(uri_json);
+    auto uri_json = C.cJSON_GetObjectItem(text_document_json, "uri");
+    char* uri = C.cJSON_GetStringValue(uri_json);
 
-    auto content_changes_json = cjson.cJSON_GetObjectItem(params_json, "contentChanges");
-    auto content_change_json = cjson.cJSON_GetArrayItem(content_changes_json, 0);
-    auto text_json = cjson.cJSON_GetObjectItem(content_change_json, "text");
-    char* text = cjson.cJSON_GetStringValue(text_json);
+    auto content_changes_json = C.cJSON_GetObjectItem(params_json, "contentChanges");
+    auto content_change_json = C.cJSON_GetArrayItem(content_changes_json, 0);
+    auto text_json = C.cJSON_GetObjectItem(content_change_json, "text");
+    char* text = C.cJSON_GetStringValue(text_json);
 
     if (uri == null || text == null) {
         LERRO("doc not found");
@@ -293,11 +349,11 @@ void lsp_sync_change(cjson.cJSON* params_json) {
     //lsp_lint(buffer);
 }
 
-void lsp_sync_close(cjson.cJSON* params_json) {
-    auto text_document_json = cjson.cJSON_GetObjectItem(params_json, "textDocument");
+void lsp_sync_close(C.cJSON* params_json) {
+    auto text_document_json = C.cJSON_GetObjectItem(params_json, "textDocument");
 
-    auto uri_json = cjson.cJSON_GetObjectItem(text_document_json, "uri");
-    char* uri = cjson.cJSON_GetStringValue(uri_json);
+    auto uri_json = C.cJSON_GetObjectItem(text_document_json, "uri");
+    char* uri = C.cJSON_GetStringValue(uri_json);
 
     if (uri == null) {
         LERRO("");
@@ -309,26 +365,26 @@ void lsp_sync_close(cjson.cJSON* params_json) {
 }
 
 
-DOCUMENT_LOCATION lsp_parse_document(cjson.cJSON* params_json) {
+DOCUMENT_LOCATION lsp_parse_document(C.cJSON* params_json) {
     DOCUMENT_LOCATION document;
 
-    auto text_document_json = cjson.cJSON_GetObjectItem(params_json, "textDocument");
-    auto uri_json = cjson.cJSON_GetObjectItem(text_document_json, "uri");
-    document.uri = cjson.cJSON_GetStringValue(uri_json);
+    auto text_document_json = C.cJSON_GetObjectItem(params_json, "textDocument");
+    auto uri_json = C.cJSON_GetObjectItem(text_document_json, "uri");
+    document.uri = C.cJSON_GetStringValue(uri_json);
     if (document.uri == null) {
         LERRO("");
         exit(1);
     }
 
-    auto position_json = cjson.cJSON_GetObjectItem(params_json, "position");
-    auto line_json = cjson.cJSON_GetObjectItem(position_json, "line");
-    if (!cjson.cJSON_IsNumber(line_json)) {
+    auto position_json = C.cJSON_GetObjectItem(params_json, "position");
+    auto line_json = C.cJSON_GetObjectItem(position_json, "line");
+    if (!C.cJSON_IsNumber(line_json)) {
         LERRO("");
         exit(1);
     }
     document.line = line_json.valueint;
-    auto character_json = cjson.cJSON_GetObjectItem(position_json, "character");
-    if (!cjson.cJSON_IsNumber(character_json)) {
+    auto character_json = C.cJSON_GetObjectItem(position_json, "character");
+    if (!C.cJSON_IsNumber(character_json)) {
         LERRO("");
         exit(1);
     }
@@ -337,17 +393,17 @@ DOCUMENT_LOCATION lsp_parse_document(cjson.cJSON* params_json) {
     return document;
 }
 
-void lsp_send_response(int id, cjson.cJSON* result) {
-    auto response = cjson.cJSON_CreateObject();
-    cjson.cJSON_AddStringToObject(response, "jsonrpc", "2.0");
-    cjson.cJSON_AddNumberToObject(response, "id", id);
+void lsp_send_response(int id, C.cJSON* result) {
+    auto response = C.cJSON_CreateObject();
+    C.cJSON_AddStringToObject(response, "jsonrpc", "2.0");
+    C.cJSON_AddNumberToObject(response, "id", id);
     if (result != null)
-        cjson.cJSON_AddItemToObject(response, "result", result);
+        C.cJSON_AddItemToObject(response, "result", result);
     else
-        cjson.cJSON_AddNullToObject(response, "result" );
+        C.cJSON_AddNullToObject(response, "result" );
 
-    char* output = cjson.cJSON_PrintUnformatted(response);
-    cjson.cJSON_Minify(output);
+    char* output = C.cJSON_PrintUnformatted(response);
+    C.cJSON_Minify(output);
     auto len = strlen(output);
 
     char[] buffer = arena.allocator().alloc!(char)(len + 512);
@@ -366,32 +422,32 @@ void lsp_send_response(int id, cjson.cJSON* result) {
 // HELPERS
 
 
-cjson.cJSON* create_range(cjson.cJSON* obj, const(char)* id, Position s, Position e)
+C.cJSON* create_range(C.cJSON* obj, const(char)* id, Position s, Position e)
 {
-    auto range = cjson.cJSON_AddObjectToObject(obj, id);
-    auto start = cjson.cJSON_AddObjectToObject(range, "start");
-    auto end = cjson.cJSON_AddObjectToObject(range, "end");
-    cjson.cJSON_AddNumberToObject(start, "line", s.line);
-    cjson.cJSON_AddNumberToObject(start, "character", s.character);
-    cjson.cJSON_AddNumberToObject(end, "line", e.line);
-    cjson.cJSON_AddNumberToObject(end, "character", e.character);
+    auto range = C.cJSON_AddObjectToObject(obj, id);
+    auto start = C.cJSON_AddObjectToObject(range, "start");
+    auto end = C.cJSON_AddObjectToObject(range, "end");
+    C.cJSON_AddNumberToObject(start, "line", s.line);
+    C.cJSON_AddNumberToObject(start, "character", s.character);
+    C.cJSON_AddNumberToObject(end, "line", e.line);
+    C.cJSON_AddNumberToObject(end, "character", e.character);
     return range;
 }
 
-bool get_range(cjson.cJSON* obj, Position* start, Position* end)
+bool get_range(C.cJSON* obj, Position* start, Position* end)
 {
-    auto range_json = cjson.cJSON_GetObjectItem(obj, "range");
-    auto start_json = cjson.cJSON_GetObjectItem(range_json, "start");
-    auto end_json = cjson.cJSON_GetObjectItem(range_json, "end");
+    auto range_json = C.cJSON_GetObjectItem(obj, "range");
+    auto start_json = C.cJSON_GetObjectItem(range_json, "start");
+    auto end_json = C.cJSON_GetObjectItem(range_json, "end");
     {
-        auto line_json = cjson.cJSON_GetObjectItem(start_json, "line");
-        auto char_json = cjson.cJSON_GetObjectItem(start_json, "character");
+        auto line_json = C.cJSON_GetObjectItem(start_json, "line");
+        auto char_json = C.cJSON_GetObjectItem(start_json, "character");
         start.line = line_json.valueint;
         start.character = char_json.valueint;
     }
     {
-        auto line_json = cjson.cJSON_GetObjectItem(end_json, "line");
-        auto char_json = cjson.cJSON_GetObjectItem(end_json, "character");
+        auto line_json = C.cJSON_GetObjectItem(end_json, "line");
+        auto char_json = C.cJSON_GetObjectItem(end_json, "character");
         end.line = line_json.valueint;
         end.character = char_json.valueint;
     }

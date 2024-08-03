@@ -47,16 +47,16 @@ char[256] make_path(T...)(T args)
     foreach(i, a; args)
     {
         auto slen = str_len(a.ptr);
-        assert(a[slen-1] != sep);
         mem.memcpy(&ret[cursor], a.ptr, slen);
         cursor += slen;
-        if (i < argslen-1)
+        if (i < argslen-1 && a[slen-1] != sep)
         {
             ret[cursor++] = sep;
         }
     }
     return ret;
 }
+
 
 struct OutputStream
 {
