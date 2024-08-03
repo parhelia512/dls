@@ -30,22 +30,38 @@ make build-vscode
     "dls.server.path":  "/home/ryuukk/dev/dls/bin/dls",
     "dls.server.imports": [
       "/home/you/project_b/",
-      "projects_a/", // relative to opened folder
+      "projects_a/", // relative to root folder
     ],
 ```
 
 - Sublime Text:
     - install sublime's LSP extension
 ```json5
-        "dls": {
-            "enabled": true,
-            "command": ["/home/ryuukk/dev/dls/bin/dls"],
-            "selector": "source.d",
-            "settings": {
-                "dls.server.imports": [
-                  "/home/you/project_b/",
-                  "projects_a/", // relative to opened folder
-                ],
-            },
+    "dls": {
+        "enabled": true,
+        "command": ["/home/ryuukk/dev/dls/bin/dls"],
+        "selector": "source.d",
+        "initializationOptions": {
+            "importPaths": [
+              "/home/you/project_b/",
+              "projects_a/", // relative to root folder
+            ],
         },
+    },
+```
+
+- Zed:
+    - Extensions -> Install Dev Extension
+    - point to `editors/zed/`
+```json5
+    "lsp": {
+        "dls":{
+          "initialization_options": {
+            "importPaths": [
+              "/home/you/project_b/",
+              "projects_a/", // relative to root folder
+            ]
+          }
+        },
+    }
 ```
