@@ -105,11 +105,11 @@ jobs:
         chmod +x dls-x86_64-linux
         zip -r dls-x86_64-linux.zip dls-x86_64-linux
 
-        zip -r dls-x86_64-windows.zip dls-x86_64-windows.exe builtin
+        zip -r dls-x86_64-windows.zip dls-x86_64-windows.exe
 
 
         rm dls-x86_64-linux
-        rm dls-x86_64-windows
+        rm dls-x86_64-windows.exe
 
 
     - name: Publish Release
