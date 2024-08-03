@@ -7,7 +7,7 @@ on:
   #- cron: 0 20 * * *
 jobs:
 
-  dist-x86_64-unknown-linux-gnu:
+  dist-x86_64-linux:
     timeout-minutes: 30
     runs-on: ubuntu-latest
     steps:
@@ -26,14 +26,14 @@ jobs:
     - name: Move to Dist
       run: |
         mkdir dist
-        mv bin/dls dist/dls-x86_64-unknown-linux-gnu
+        mv bin/dls dist/dls-x86_64-linux
     - name: Upload artifacts
       uses: actions/upload-artifact@v2
       with:
-        name: dist-x86_64-unknown-linux-gnu
+        name: dist-x86_64-linux
         path: ./dist
 
-  dist-x86_64-pc-windows-msvc:
+  dist-x86_64-windows:
     timeout-minutes: 30
     runs-on: windows-2019
     steps:
@@ -63,18 +63,18 @@ jobs:
         echo "-- debug"
         dir
         echo "rename dls.exe"
-        ren dls.exe dls-x86_64-pc-windows-msvc.exe
+        ren dls.exe dls-x86_64-windows.exe
     - name: Upload artifacts
       uses: actions/upload-artifact@v2
       with:
-        name: dist-x86_64-pc-windows-msvc
+        name: dist-x86_64-windows
         path: ./dist
 
   publish:
     name: publish
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    needs: ['dist-x86_64-unknown-linux-gnu', 'dist-x86_64-pc-windows-msvc']
+    needs: ['dist-x86_64-linux', 'dist-x86_64-windows']
     steps:
     - name: Install Nodejs
       uses: actions/setup-node@v1
@@ -90,22 +90,22 @@ jobs:
 
     - uses: actions/download-artifact@v2
       with:
-        name: dist-x86_64-unknown-linux-gnu
+        name: dist-x86_64-linux
         path: dist
 
     - uses: actions/download-artifact@v2
       with:
-        name: dist-x86_64-pc-windows-msvc
+        name: dist-x86_64-windows
         path: dist
 
     - run: |
         ls -al ./dist
         cd dist
 
-        chmod +x dls-x86_64-unknown-linux-gnu
-        zip -r dls-x86_64-unknown-linux-gnu.zip dls-x86_64-unknown-linux-gnu
+        chmod +x dls-x86_64-linux
+        zip -r dls-x86_64-linux.zip dls-x86_64-linux
 
-        zip -r dls-x86_64-pc-windows-msvc.zip dls-x86_64-pc-windows-msvc.exe builtin
+        zip -r dls-x86_64-windows.zip dls-x86_64-windows.exe builtin
 
 
     - name: Publish Release
