@@ -1,18 +1,15 @@
 use std::fs;
-use zed::settings::LspSettings;
-use zed_extension_api::{self as zed, serde_json, Result};
+use zed::LanguageServerId;
+use zed_extension_api::{self as zed, Result};
 
-// This code was adapted from the csharp extension that is built into Zed.
-// That code carried an Apache 2.0 license.
-
-struct DExtension {
+struct OdinExtension {
     cached_binary_path: Option<String>,
 }
 
-impl DExtension {
+impl OdinExtension {
     fn language_server_binary_path(
         &mut self,
-        language_server_id: &zed::LanguageServerId,
+        language_server_id: &LanguageServerId,
         worktree: &zed::Worktree,
     ) -> Result<String> {
         if let Some(path) = &self.cached_binary_path {
@@ -34,36 +31,27 @@ impl DExtension {
             "ryuukk/dls",
             zed::GithubReleaseOptions {
                 require_assets: true,
-                pre_release: true, // TODO: serve-d "release" builds are too ancient to be useful
+                pre_release: true,
             },
         )?;
 
-        fn trim_first(value: &str) -> &str {
-            let mut chars = value.chars();
-            chars.next();
-            chars.as_str()
-        }
-
         let (platform, arch) = zed::current_platform();
         let asset_name = format!(
-            "dls_{version}-{os}-{arch}{extension}",
+            "dls-{arch}-{os}.{extension}",
+            arch = match arch {
+                zed::Architecture::Aarch64 => "arm64",
+                zed::Architecture::X86 => "x86",
+                zed::Architecture::X8664 => "x86_64",
+            },
             os = match platform {
-                zed::Os::Mac => "osx",
+                zed::Os::Mac => "macos",
                 zed::Os::Linux => "linux",
                 zed::Os::Windows => "windows",
             },
-            arch = match arch {
-                // NB: no 32-bit support
-                zed::Architecture::Aarch64 => "arm64",
-                zed::Architecture::X8664 => "x86_64",
-                zed::Architecture::X86 => "x86",
-            },
             extension = match platform {
-                zed::Os::Mac => ".tar.gz",
-                zed::Os::Linux => ".tar.gz",
-                zed::Os::Windows => ".zip",
-            },
-            version = trim_first(release.version.as_str())
+                zed::Os::Mac | zed::Os::Linux => "zip",
+                zed::Os::Windows => "zip",
+            }
         );
 
         let asset = release
@@ -73,31 +61,47 @@ impl DExtension {
             .ok_or_else(|| format!("no asset found matching {:?}", asset_name))?;
 
         let version_dir = format!("dls-{}", release.version);
-        let binary_path = format!("{version_dir}/dls");
+        fs::create_dir_all(&version_dir)
+            .map_err(|err| format!("failed to create directory '{version_dir}': {err}"))?;
+        let binary_path = format!(
+            "{version_dir}/dls-{arch}-{os}",
+            arch = match arch {
+                zed::Architecture::Aarch64 => "arm64",
+                zed::Architecture::X86 => "x86",
+                zed::Architecture::X8664 => "x86_64",
+            },
+            os = match platform {
+                zed::Os::Mac => "macos",
+                zed::Os::Linux => "linux",
+                zed::Os::Windows => "windows",
+            },
+        );
 
         if !fs::metadata(&binary_path).map_or(false, |stat| stat.is_file()) {
             zed::set_language_server_installation_status(
                 &language_server_id,
                 &zed::LanguageServerInstallationStatus::Downloading,
             );
-        }
 
-        zed::download_file(
-            &asset.download_url,
-            &version_dir,
-            match platform {
-                zed::Os::Mac | zed::Os::Linux => zed::DownloadedFileType::GzipTar,
-                zed::Os::Windows => zed::DownloadedFileType::Zip,
-            },
-        )
-        .map_err(|e| format!("failed to dowload file: {e}"))?;
+            zed::download_file(
+                &asset.download_url,
+                &version_dir,
+                match platform {
+                    zed::Os::Mac | zed::Os::Linux => zed::DownloadedFileType::Zip,
+                    zed::Os::Windows => zed::DownloadedFileType::Zip,
+                },
+            )
+            .map_err(|e| format!("failed to download file: {e}"))?;
 
-        let entries =
-            fs::read_dir(".").map_err(|e| format!("failed to list working directory {e}"))?;
-        for entry in entries {
-            let entry = entry.map_err(|e| format!("failed to load directory entry {e}"))?;
-            if entry.file_name().to_str() != Some(&version_dir) {
-                fs::remove_dir_all(&entry.path()).ok();
+            zed::make_file_executable(&binary_path)?;
+
+            let entries =
+                fs::read_dir(".").map_err(|e| format!("failed to list working directory {e}"))?;
+            for entry in entries {
+                let entry = entry.map_err(|e| format!("failed to load directory entry {e}"))?;
+                if entry.file_name().to_str() != Some(&version_dir) {
+                    fs::remove_dir_all(&entry.path()).ok();
+                }
             }
         }
 
@@ -106,7 +110,7 @@ impl DExtension {
     }
 }
 
-impl zed::Extension for DExtension {
+impl zed::Extension for OdinExtension {
     fn new() -> Self {
         Self {
             cached_binary_path: None,
@@ -115,36 +119,15 @@ impl zed::Extension for DExtension {
 
     fn language_server_command(
         &mut self,
-        language_server_id: &zed::LanguageServerId,
+        language_server_id: &LanguageServerId,
         worktree: &zed::Worktree,
     ) -> Result<zed::Command> {
         Ok(zed::Command {
             command: self.language_server_binary_path(language_server_id, worktree)?,
-            args: vec![
-                // "--provide".to_string(),
-                // "contexts-snippets".to_string(),
-                // "--provide".to_string(),
-                // "default-snippets".to_string(),
-                // "--loglevel".to_string(),
-                // "trace".to_string(),
-                // "--logfile".to_string(),
-                // "/var/tmp/serve-d.log".to_string(),
-            ],
+            args: vec![],
             env: Default::default(),
         })
     }
-
-    fn language_server_workspace_configuration(
-        &mut self,
-        _language_server_id: &zed::LanguageServerId,
-        _worktree: &zed::Worktree,
-    ) -> Result<Option<serde_json::Value>> {
-        let settings = LspSettings::for_worktree("dls", _worktree)
-            .ok()
-            .and_then(|lsp_settings| lsp_settings.settings.clone())
-            .unwrap_or_default();
-
-        Ok(Some(serde_json::json!(settings)))
-    }
 }
-zed::register_extension!(DExtension);
+
+zed::register_extension!(OdinExtension);

@@ -2,6 +2,7 @@
     "comments": {
         "lineComment": "//",
         "blockComment": ["/*", "*/"]
+        "blockComment": ["/+", "+/"]
     },
     "brackets": [
         ["{", "}"],
@@ -28,5 +29,4 @@
         "increaseIndentPattern": "^.*\\{[^}\"']*$|^.*\\([^\\)\"']*$|^\\s*case.*:$",
         "decreaseIndentPattern": "^\\s*(\\s*\\/[*].*[*]\\/\\s*)*[})]"
     },
-    
 }
