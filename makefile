@@ -1,4 +1,5 @@
-COMPILER?=dmd
+COMPILER?=~/dev/install/linux/bin64/dmd
+# COMPILER?=dmd
 PREVIEWS=-preview=rvaluerefparam -preview=bitfields
 
 
@@ -31,8 +32,11 @@ endif
 
 
 build-dls:
-	@$(COMPILER) -of=bin/dls$(exe) $(OPTIMIZE) $(PREVIEWS) -betterC -i -Iserver/ \
-    server/cjson/cJSON.c server/dls/main.d
+	@$(COMPILER) -of=bin/dls$(exe) $(OPTIMIZE) $(PREVIEWS) -i -Iserver/ \
+    server/cjson/cJSON.c server/dls/main.d server/dls/libdcd.a
+
+run-dls: build-dls
+	cd bin && ./dls
 
 build-dcd:
 	cd dcd_templates/ && dub build -c library
