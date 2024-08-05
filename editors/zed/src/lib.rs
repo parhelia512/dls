@@ -2,11 +2,11 @@ use std::fs;
 use zed::LanguageServerId;
 use zed_extension_api::{self as zed, Result};
 
-struct OdinExtension {
+struct DExtension {
     cached_binary_path: Option<String>,
 }
 
-impl OdinExtension {
+impl DExtension {
     fn language_server_binary_path(
         &mut self,
         language_server_id: &LanguageServerId,
@@ -110,7 +110,7 @@ impl OdinExtension {
     }
 }
 
-impl zed::Extension for OdinExtension {
+impl zed::Extension for DExtension {
     fn new() -> Self {
         Self {
             cached_binary_path: None,
@@ -130,4 +130,4 @@ impl zed::Extension for OdinExtension {
     }
 }
 
-zed::register_extension!(OdinExtension);
+zed::register_extension!(DExtension);
