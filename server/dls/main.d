@@ -202,9 +202,9 @@ void handle_request(C.cJSON* request) {
 
 void lsp_initialize_params(int id, C.cJSON* params_json)
 {
-    //char* output = C.cJSON_Print(params_json);
-    //LINFO("lsp_initialize_params:\n{}", output);
-
+    char* output = C.cJSON_Print(params_json);
+    LINFO("lsp_initialize_params:\n{}", output);
+    dcd_init();
     auto rootPath_json = C.cJSON_GetObjectItem(params_json, "rootPath");
     if (!rootPath_json)
     {
@@ -243,7 +243,6 @@ void lsp_initialize_params(int id, C.cJSON* params_json)
             "c:/D/dmd2/src/phobos/",
         ];
     }
-    dcd_init();
 
 
     auto rootPath = C.cJSON_GetStringValue(rootPath_json);
@@ -309,6 +308,51 @@ void lsp_imports(int id, C.cJSON* params_json) {
     char* output = C.cJSON_Print(params_json);
 
     LINFO("lsp_imports:\n{}", output);
+    /*
+
+        [["/run/media/ryuukk/E0C0C01FC0BFFA3C/dev/kdom/better_d/", "/run/media/ryuukk/E0C0C01FC0BFFA3C/dev/kdom/better_d/rt/", "/run/media/ryuukk/E0C0C01FC0BFFA3C/dev/kdom/projects/"]]
+    */
+
+
+    //if (C.cJSON_IsArray(params_json) == false) return;
+    //if (C.cJSON_GetArraySize(params_json) == 0) return;
+
+    //auto imports_json = C.cJSON_GetArrayItem(params_json, 0);
+    //int size = C.cJSON_GetArraySize(imports_json);
+
+    //string[] extraImports;
+    //LINFO("root path: {}", rootPath);
+    //LINFO("import paths: {}", size);
+
+    //extraImports = arena.allocator().alloc!(string)(size);
+    //for (int i = 0; i < size; i++)
+    //{
+    //    auto item = C.cJSON_GetArrayItem(imports_json, i);
+    //    auto str = C.cJSON_GetStringValue(item);
+    //    auto L_it = strlen(str);
+
+    //    LINFO("path: {}  {}/{}", str, L_it, L_r);
+
+    //    if (L_it > 1)
+    //    {
+    //        if (str[0] == '/' || str[1] == ':')
+    //        {
+    //            extraImports[i] = cast(string) str[0 .. strlen(str)];
+    //            LINFO("adding import: {}", extraImports[i]);
+    //        }
+    //        else
+    //        {
+    //            // concat
+    //            auto path = fs.make_path( rootPathStr, cast(string) str[0 .. L_it] );
+    //            auto pathBuffer = mem.dupe(arena.allocator(), path);
+    //            auto pathStr = cast(string) pathBuffer[0 .. strlen(pathBuffer.ptr)];
+
+    //            extraImports[i] = pathStr;
+
+    //            LINFO("adding import: {}", extraImports[i]);
+    //        }
+    //    }
+    //}
 }
 
 

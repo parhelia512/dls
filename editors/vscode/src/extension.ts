@@ -10,6 +10,7 @@ import { promises as fs, PathLike, constants, writeFileSync } from "fs";
 var AdmZip = require('adm-zip');
 
 import {
+    InitializeParams,
     LanguageClient,
     LanguageClientOptions,
     ServerOptions
@@ -29,6 +30,18 @@ const onDidChange: vscode.EventEmitter<void> = new vscode.EventEmitter<void>();
 
 let ctx: Ctx;
 
+
+class DLSLanguageClient extends LanguageClient {
+    importPaths: string[];
+
+    fillInitializeParams(params: InitializeParams) {
+        // fix https://github.com/johnsoncodehk/volar/issues/1959
+
+        params.initializationOptions = {
+            importPaths: this.importPaths
+        }
+    }
+}
 
 export async function activate(context: vscode.ExtensionContext) {
 
@@ -70,7 +83,6 @@ export async function activate(context: vscode.ExtensionContext) {
     let serverOptions: ServerOptions = {
         command: serverPath,
         args: [
-            "--imports="+imports.join(',')
         ],
         options: {
             cwd: path.dirname(serverPath),
@@ -82,12 +94,13 @@ export async function activate(context: vscode.ExtensionContext) {
         outputChannel: vscode.window.createOutputChannel("D Language Server")
     };
 
-    var client = new LanguageClient(
+    var client = new DLSLanguageClient(
         'dls',
         'D Language Server Client',
         serverOptions,
         clientOptions
     );
+    client.importPaths = imports;
 
     ctx = await Ctx.create(config, client, context, serverPath, workspaceFolder.uri.fsPath);
 
