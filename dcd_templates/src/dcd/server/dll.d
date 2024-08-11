@@ -92,6 +92,8 @@ extern(C) export DSymbolInfo[] dcd_document_symbols(const(char)* content)
     request.kind |= RequestKind.autocomplete;
     request.sourceCode = cast(ubyte[]) fromStringz(content);
 
+    if (request.sourceCode == null || request.sourceCode.length == 0) return ret;
+
     LexerConfig config;
     config.fileName = "";
     auto sc = StringCache(request.sourceCode.length.optimalBucketCount);
