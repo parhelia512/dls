@@ -488,15 +488,22 @@ final class FirstPass : ASTVisitor
 			else if (tk == tok!"")
 				calltip ~= " ";
 			else
+            {
+                // TODO: sometimes crashes the LSP, happens while editing, investigate
 				if (tk.text.length > 0)
-					calltip ~= tk.text;
+				{
+                    calltip ~= tk.text;
+                }
 				else
 				{
-                    auto bt = getBuiltinTypeName(tk.type);
-					calltip ~= bt;
+                    auto bt = tryGetBuiltinTypeName(tk.type);
+                    if (bt.length > 0)
+					{
+                        calltip ~= bt;
+                    }
 
-                    assert(bt.length > 0, "why");
 				}
+            }
 		}
 		return calltip;
 	}

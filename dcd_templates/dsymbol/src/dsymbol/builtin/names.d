@@ -214,35 +214,67 @@ package istring[24] builtinTypeNames;
  */
 istring getBuiltinTypeName(IdType id) nothrow @nogc @safe
 {
-	switch (id)
-	{
-	case tok!"int": return builtinTypeNames[0];
-	case tok!"uint": return builtinTypeNames[1];
-	case tok!"double": return builtinTypeNames[2];
-	case tok!"idouble": return builtinTypeNames[3];
-	case tok!"float": return builtinTypeNames[4];
-	case tok!"ifloat": return builtinTypeNames[5];
-	case tok!"short": return builtinTypeNames[6];
-	case tok!"ushort": return builtinTypeNames[7];
-	case tok!"long": return builtinTypeNames[8];
-	case tok!"ulong": return builtinTypeNames[9];
-	case tok!"char": return builtinTypeNames[10];
-	case tok!"wchar": return builtinTypeNames[11];
-	case tok!"dchar": return builtinTypeNames[12];
-	case tok!"bool": return builtinTypeNames[13];
-	case tok!"void": return builtinTypeNames[14];
-	case tok!"cent": return builtinTypeNames[15];
-	case tok!"ucent": return builtinTypeNames[16];
-	case tok!"real": return builtinTypeNames[17];
-	case tok!"ireal": return builtinTypeNames[18];
-	case tok!"byte": return builtinTypeNames[19];
-	case tok!"ubyte": return builtinTypeNames[20];
-	case tok!"cdouble": return builtinTypeNames[21];
-	case tok!"cfloat": return builtinTypeNames[22];
-	case tok!"creal": return builtinTypeNames[23];
-	default: assert (false);
-	}
+    switch (id)
+    {
+    case tok!"int": return builtinTypeNames[0];
+    case tok!"uint": return builtinTypeNames[1];
+    case tok!"double": return builtinTypeNames[2];
+    case tok!"idouble": return builtinTypeNames[3];
+    case tok!"float": return builtinTypeNames[4];
+    case tok!"ifloat": return builtinTypeNames[5];
+    case tok!"short": return builtinTypeNames[6];
+    case tok!"ushort": return builtinTypeNames[7];
+    case tok!"long": return builtinTypeNames[8];
+    case tok!"ulong": return builtinTypeNames[9];
+    case tok!"char": return builtinTypeNames[10];
+    case tok!"wchar": return builtinTypeNames[11];
+    case tok!"dchar": return builtinTypeNames[12];
+    case tok!"bool": return builtinTypeNames[13];
+    case tok!"void": return builtinTypeNames[14];
+    case tok!"cent": return builtinTypeNames[15];
+    case tok!"ucent": return builtinTypeNames[16];
+    case tok!"real": return builtinTypeNames[17];
+    case tok!"ireal": return builtinTypeNames[18];
+    case tok!"byte": return builtinTypeNames[19];
+    case tok!"ubyte": return builtinTypeNames[20];
+    case tok!"cdouble": return builtinTypeNames[21];
+    case tok!"cfloat": return builtinTypeNames[22];
+    case tok!"creal": return builtinTypeNames[23];
+    default: assert (false);
+    }
 }
+istring tryGetBuiltinTypeName(IdType id)
+{
+    switch (id)
+    {
+    case tok!"int": return builtinTypeNames[0];
+    case tok!"uint": return builtinTypeNames[1];
+    case tok!"double": return builtinTypeNames[2];
+    case tok!"idouble": return builtinTypeNames[3];
+    case tok!"float": return builtinTypeNames[4];
+    case tok!"ifloat": return builtinTypeNames[5];
+    case tok!"short": return builtinTypeNames[6];
+    case tok!"ushort": return builtinTypeNames[7];
+    case tok!"long": return builtinTypeNames[8];
+    case tok!"ulong": return builtinTypeNames[9];
+    case tok!"char": return builtinTypeNames[10];
+    case tok!"wchar": return builtinTypeNames[11];
+    case tok!"dchar": return builtinTypeNames[12];
+    case tok!"bool": return builtinTypeNames[13];
+    case tok!"void": return builtinTypeNames[14];
+    case tok!"cent": return builtinTypeNames[15];
+    case tok!"ucent": return builtinTypeNames[16];
+    case tok!"real": return builtinTypeNames[17];
+    case tok!"ireal": return builtinTypeNames[18];
+    case tok!"byte": return builtinTypeNames[19];
+    case tok!"ubyte": return builtinTypeNames[20];
+    case tok!"cdouble": return builtinTypeNames[21];
+    case tok!"cfloat": return builtinTypeNames[22];
+    case tok!"creal": return builtinTypeNames[23];
+    default: return istring("");
+    }
+}
+
 
 
 /**
