@@ -380,13 +380,7 @@
             "patterns": [
                 {
                     "name": "meta.embedded.expression.d",
-                    "begin": "\\{",
-                    "end": "\\}",
-                    "patterns": [
-                        {
-                            "include": "#expression"
-                        }
-                    ]
+                    "match": "\\{\\}"
                 },
                 {
                     "name": "constant.character.escape.d",
