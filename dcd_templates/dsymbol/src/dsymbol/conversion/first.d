@@ -938,7 +938,7 @@ final class FirstPass : ASTVisitor
 		currentSymbol = rootSymbol;
 		moduleScope = GCAllocator.instance.make!Scope(0, uint.max);
 		currentScope = moduleScope;
-		auto objectLocation = cache.resolveImportLocation("object", true);
+		auto objectLocation = cache.resolveImportLocation!(true)("object");
 		if (objectLocation is null)
 			warning("Could not locate object.d or object.di");
 		else

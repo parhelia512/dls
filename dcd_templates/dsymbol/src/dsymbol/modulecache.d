@@ -281,15 +281,33 @@ struct ModuleCache
 	 *     The absolute path to the file that contains the module, or null if
 	 *     not found.
 	 */
-	istring resolveImportLocation(string moduleName, bool skipFirst = false)
+	istring resolveImportLocation(bool reverse = false)(string moduleName)
 	{
-        import std.range: retro;
 		assert(moduleName !is null, "module name is null");
 		if (isRooted(moduleName))
 			return istring(moduleName);
 		string alternative;
 
-		foreach (importPath; importPaths[])
+		auto _getImports()
+		{
+			static if (reverse)
+			{
+				import  std.algorithm.mutation: reverse;
+				ImportPath[] ret;
+				foreach (importPath; importPaths[])
+				{
+					ret ~= importPath;
+				}
+				ret = ret.reverse;
+				return ret;
+			}
+			else
+				return importPaths[];
+		}
+
+		auto ipaths = _getImports();
+
+		foreach (importPath; ipaths)
 		{
 			auto path = importPath.path;
 			// import path is a filename
@@ -298,11 +316,6 @@ struct ModuleCache
 				&& path.existsAnd!isFile)
 			{
 				// prefer exact import names above .di/package.d files
-                if (skipFirst)
-                {
-                    skipFirst = false;
-                    continue;
-                }
 				return istring(path);
 			}
 			// no exact matches and no .di/package.d matches either
@@ -312,7 +325,9 @@ struct ModuleCache
 				string dotD = dotDi[0 .. $ - 1];
 				string withoutSuffix = dotDi[0 .. $ - 3];
 				if (existsAnd!isFile(dotD))
+				{
 					return istring(dotD); // return early for exactly matching .d files
+				}
 				else if (existsAnd!isFile(dotDi))
 					alternative = dotDi;
 				else if (existsAnd!isDir(withoutSuffix))
@@ -330,7 +345,9 @@ struct ModuleCache
 			{
 				string dotD = buildPath(path, moduleName) ~ ".d";
 				if (existsAnd!isFile(dotD))
+				{
 					return istring(dotD); // return early for exactly matching .d files
+				}
 			}
 		}
 		return alternative.length > 0 ? istring(alternative) : istring(null);
