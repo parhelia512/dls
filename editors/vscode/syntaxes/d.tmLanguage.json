@@ -273,14 +273,14 @@
                 },
                 {
                     "name": "keyword.control.d",
-                    "match": "(?<!\\$)\\b(break|case|continue|default|do|else|for|foreach|reverse_foreach|if|in|switch|while|when|version|function|delegate|nothrow|pure|__traits|pragma)\\b(?!\\$)"
+                    "match": "(?<!\\$)\\b(break|case|continue|default|do|else|for|foreach|reverse_foreach|if|in|switch|while|when|version|debug|package|function|delegate|nothrow|pure|__traits|pragma)\\b(?!\\$)"
                 },
                 {
                     "name": "keyword.control.d",
                     "match": "(?<!\\$)\\b(sync(\\*)?|async(\\*)?|await|yield(\\*)?)\\b(?!\\$)"
                 },
                 {
-                    "name": "keyword.control.d",
+                    "name": "keyword.control.assert.d",
                     "match": "(?<!\\$)\\bassert\\b(?!\\$)"
                 },
                 {
