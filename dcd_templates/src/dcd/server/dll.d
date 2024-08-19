@@ -310,7 +310,7 @@ string from_kind(CompletionKind kind)
     }
 }
 
-extern(C) export string dcd_hover(const(char)* content, int position)
+extern(C) export string[] dcd_hover(const(char)* content, int position)
 {
     import containers.ttree : TTree;
     import containers.hashset;
@@ -343,63 +343,67 @@ extern(C) export string dcd_hover(const(char)* content, int position)
     SymbolStuff stuff = getSymbolsForCompletion(request, CompletionType.location, &rba, sc, cache);
     scope(exit) stuff.destroy();
 
-    string ret;
+    string[] ret;
     if (stuff.symbols.length > 0)
     {
         foreach(i, sym; stuff.symbols)
         {
-            //fprintf(stderr, "found: %.*s  at: %.*s -> %lu\n", sym.name.length, sym.name.ptr, sym.symbolFile.length, sym.symbolFile.ptr, sym.location);
+            warning("found: ", sym.name, " k:", sym.kind,"  at: ",sym.symbolFile," -> ", sym.location,"\n    ct: ", sym.callTip,"\n");
+            if (sym.type)
+                warning("  type: ", sym.type.name, " k:", sym.type.kind,"  at: ",sym.type.symbolFile," -> ", sym.type.location,"\n    ct: ", sym.type.callTip,"\n");
 
+            string value;
             if (sym.callTip.length > 0)
             {
-                ret ~= sym.callTip;
+                value ~= sym.callTip;
             }
             else
             {
                 if (sym.kind == CompletionKind.structName)
-                    ret ~= "struct";
+                    value ~= "struct";
                 else if (sym.kind == CompletionKind.enumName)
-                    ret ~= "enum";
+                    value ~= "enum";
                 else if (sym.kind == CompletionKind.unionName)
-                    ret ~= "union";
+                    value ~= "union";
                 else if (sym.kind == CompletionKind.className)
-                    ret ~= "class";
+                    value ~= "class";
                 else if (sym.kind == CompletionKind.interfaceName)
-                    ret ~= "interface";
+                    value ~= "interface";
                 else if (sym.kind == CompletionKind.keyword)
-                    ret ~= "keyword";
+                    value ~= "keyword";
                 else if (sym.kind == CompletionKind.variableName)
                 {
                     if (sym.type != null)
                     {
-                        auto ittype = sym.type;
-                        if (ittype != null 
-                            && (
-                                ittype.kind ==  CompletionKind.structName ||
-                                ittype.kind ==  CompletionKind.className ||
-                                ittype.kind ==  CompletionKind.interfaceName ||
-                                ittype.kind ==  CompletionKind.enumName ||
-                                ittype.kind ==  CompletionKind.unionName ||
-                                ittype.kind ==  CompletionKind.aliasName
-                            )
+                        if (
+                            sym.type.kind ==  CompletionKind.structName ||
+                            sym.type.kind ==  CompletionKind.className ||
+                            sym.type.kind ==  CompletionKind.interfaceName ||
+                            sym.type.kind ==  CompletionKind.enumName ||
+                            sym.type.kind ==  CompletionKind.unionName ||
+                            sym.type.kind ==  CompletionKind.aliasName
                         )
-                            ret ~= from_kind(ittype.kind) ~ " ";
-                        ret ~= sym.type.formatType();
+                            value ~= from_kind(sym.type.kind) ~ " ";
+
+                        value ~= sym.type.formatType();
                     }
                 }
                 else if (sym.kind == CompletionKind.aliasName)
                 {
-                    ret ~= "alias => ";
+                    value ~= "alias => ";
                     if (sym.type != null)
                     {
 
-                        ret ~= sym.type.formatType();
+                        value ~= sym.type.formatType();
                     }
                 }
+                else if (sym.kind == CompletionKind.enumMember)
+                {
+                    // TODO: figure a way to make this useful
+                    continue;
+                }
             }
-
-            if (i < stuff.symbols.length-1)
-                ret ~= "\n";
+            ret ~= value;
         }
     }
     return ret;

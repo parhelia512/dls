@@ -45,21 +45,36 @@ void lsp_hover(int id, cjson.cJSON * params_json) {
     auto it = cast(string) buffer.content[0..strlen(buffer.content)];
     auto pos = positionToBytes(it, doc.line, doc.character);
 
-    auto def = dcd_hover(buffer.content, pos);
-    auto root = cjson.cJSON_CreateObject();
+    auto defs = dcd_hover(buffer.content, pos);
 
-    LWARN("hover: {}", def);
 
-    if (def.length > 0)
+    auto obj = cjson.cJSON_CreateObject();
+    auto contents = cjson.cJSON_AddArrayToObject(obj, "contents");
+
+    LWARN("hover: {}", defs.length);
+
+    foreach(def; defs)
     {
-        auto value = mem.dupe_add_sentinel(allocator, def);
+        if (def.length == 0)
+        {
+            auto item = cjson.cJSON_CreateObject();
+            cjson.cJSON_AddStringToObject(item, "value", "<empty>");
+            cjson.cJSON_AddStringToObject(item, "language", "d");
 
-        auto marked = cjson.cJSON_AddObjectToObject(root, "contents");
-        cjson.cJSON_AddStringToObject(marked, "value", value.ptr);
-        cjson.cJSON_AddStringToObject(marked, "language", "d");
+            cjson.cJSON_AddItemToArray(contents, item);
+        }
+        else
+        {
+            auto value = mem.dupe_add_sentinel(allocator, def);
+            auto item = cjson.cJSON_CreateObject();
+            cjson.cJSON_AddStringToObject(item, "value", value.ptr);
+            cjson.cJSON_AddStringToObject(item, "language", "d");
+
+            cjson.cJSON_AddItemToArray(contents, item);
+        }
 
     }
 
-    lsp_send_response(id, root);
+    lsp_send_response(id, obj);
 }
 

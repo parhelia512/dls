@@ -96,4 +96,4 @@ struct Location
 }
 
 extern(C) Location[] dcd_definition(const(char)* content, int position);
-extern(C) export string dcd_hover(const(char)* content, int position);
+extern(C) export string[] dcd_hover(const(char)* content, int position);
