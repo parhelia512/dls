@@ -22,6 +22,7 @@ import dls.initialize;
 import dls.completion;
 import dls.document_symbols;
 import dls.definition;
+import dls.hover;
 //import dls.semantic_tokens;
 
 version (linux)
@@ -184,6 +185,9 @@ void handle_request(C.cJSON* request) {
     else if (strcmp(method, "textDocument/definition") == 0) {
         lsp_definition(id, params_json);
     }
+    else if (strcmp(method, "textDocument/hover") == 0) {
+        lsp_hover(id, params_json);
+    }
     //else if (strcmp(method, "textDocument/semanticTokens/full") == 0) {
     //    lsp_semantic_tokens(id, params_json, true);
     //}
@@ -196,6 +200,11 @@ void handle_request(C.cJSON* request) {
     else
     {
         LWARN("request '{}' not handled", method);
+        if (params_json)
+        {
+            char* output = C.cJSON_Print(params_json);
+            LWARN("{}", output);
+        }
     }
 }
 

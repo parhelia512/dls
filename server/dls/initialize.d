@@ -18,7 +18,7 @@ void lsp_initialize(int id) {
 
     auto capabilities = cjson.cJSON_AddObjectToObject(result, "capabilities");
     cjson.cJSON_AddNumberToObject(capabilities, "textDocumentSync", 1);
-    cjson.cJSON_AddBoolToObject(capabilities, "hoverProvider", 0);
+    cjson.cJSON_AddBoolToObject(capabilities, "hoverProvider", 1);
     cjson.cJSON_AddBoolToObject(capabilities, "definitionProvider", 1);
     cjson.cJSON_AddBoolToObject(capabilities, "documentSymbolProvider", 1);
 

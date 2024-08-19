@@ -13,6 +13,7 @@ import core.stdc.stdarg;
 import dcd.common.messages;
 import dcd.server.autocomplete;
 
+import dsymbol.symbol;
 import dsymbol.modulecache;
 
 __gshared:
@@ -78,7 +79,7 @@ extern(C) export DSymbolInfo[] dcd_document_symbols(const(char)* content)
     import dsymbol.scope_;
     import dsymbol.string_interning;
     import dsymbol.symbol;
-    import dsymbol.ufcs;
+    //import dsymbol.ufcs;
     import dsymbol.utils;
 
     import dcd.common.constants;
@@ -123,6 +124,14 @@ extern(C) export DSymbolInfo[] dcd_document_symbols(const(char)* content)
         foreach(sym; it.opSlice())
         {
             if (sym.symbolFile != "stdin") continue;
+            if (
+                (sym.kind == CompletionKind.functionName 
+                || sym.kind == CompletionKind.enumName
+                || sym.kind == CompletionKind.structName
+                || sym.kind == CompletionKind.unionName
+                ) == false
+            )
+                continue;
 
             DSymbolInfo child;
             check(sym, p, &child);
@@ -159,7 +168,7 @@ extern(C) export DSymbolInfo[] dcd_document_symbols_sem(const(char)* content)
     import dsymbol.scope_;
     import dsymbol.string_interning;
     import dsymbol.symbol;
-    import dsymbol.ufcs;
+    //import dsymbol.ufcs;
     import dsymbol.utils;
 
     import dcd.common.constants;
@@ -271,8 +280,7 @@ extern(C) export Location[] dcd_definition(const(char)* content, int position)
 
     RollbackAllocator rba;
     auto sc = StringCache(request.sourceCode.length.optimalBucketCount);
-    SymbolStuff stuff = getSymbolsForCompletion(request, CompletionType.location,
-        &rba, sc, cache);
+    SymbolStuff stuff = getSymbolsForCompletion(request, CompletionType.location, &rba, sc, cache);
     scope(exit) stuff.destroy();
 
     Location[] ret;
@@ -282,6 +290,116 @@ extern(C) export Location[] dcd_definition(const(char)* content, int position)
         {
             //fprintf(stderr, "found: %.*s  at: %.*s -> %lu\n", sym.name.length, sym.name.ptr, sym.symbolFile.length, sym.symbolFile.ptr, sym.location);
             ret ~= Location(sym.symbolFile, sym.location);
+        }
+    }
+    return ret;
+}
+
+
+string from_kind(CompletionKind kind)
+{
+    switch (kind)
+    {
+        case CompletionKind.structName: return "struct";
+        case CompletionKind.className: return "class";
+        case CompletionKind.interfaceName: return "interface";
+        case CompletionKind.enumName: return "enum";
+        case CompletionKind.unionName: return "union";
+        case CompletionKind.aliasName: return "alias";
+        default: return "";
+    }
+}
+
+extern(C) export string dcd_hover(const(char)* content, int position)
+{
+    import containers.ttree : TTree;
+    import containers.hashset;
+    import dcd.server.autocomplete.util;
+
+    import dparse.lexer;
+    import dparse.rollback_allocator;
+
+    import dsymbol.builtin.names;
+    import dsymbol.builtin.symbols;
+    import dsymbol.conversion;
+    import dsymbol.modulecache;
+    import dsymbol.scope_;
+    import dsymbol.string_interning;
+    import dsymbol.symbol;
+    import dsymbol.ufcs;
+    import dsymbol.utils;
+
+    import dcd.common.constants;
+    import dcd.common.messages;
+
+    AutocompleteRequest request;
+    request.fileName = "stdin";
+    request.cursorPosition = position;
+    request.kind |= RequestKind.autocomplete;
+    request.sourceCode = cast(ubyte[]) fromStringz(content);
+
+    RollbackAllocator rba;
+    auto sc = StringCache(request.sourceCode.length.optimalBucketCount);
+    SymbolStuff stuff = getSymbolsForCompletion(request, CompletionType.location, &rba, sc, cache);
+    scope(exit) stuff.destroy();
+
+    string ret;
+    if (stuff.symbols.length > 0)
+    {
+        foreach(i, sym; stuff.symbols)
+        {
+            //fprintf(stderr, "found: %.*s  at: %.*s -> %lu\n", sym.name.length, sym.name.ptr, sym.symbolFile.length, sym.symbolFile.ptr, sym.location);
+
+            if (sym.callTip.length > 0)
+            {
+                ret ~= sym.callTip;
+            }
+            else
+            {
+                if (sym.kind == CompletionKind.structName)
+                    ret ~= "struct";
+                else if (sym.kind == CompletionKind.enumName)
+                    ret ~= "enum";
+                else if (sym.kind == CompletionKind.unionName)
+                    ret ~= "union";
+                else if (sym.kind == CompletionKind.className)
+                    ret ~= "class";
+                else if (sym.kind == CompletionKind.interfaceName)
+                    ret ~= "interface";
+                else if (sym.kind == CompletionKind.keyword)
+                    ret ~= "keyword";
+                else if (sym.kind == CompletionKind.variableName)
+                {
+                    if (sym.type != null)
+                    {
+                        auto ittype = sym.type;
+                        if (ittype != null 
+                            && (
+                                ittype.kind ==  CompletionKind.structName ||
+                                ittype.kind ==  CompletionKind.className ||
+                                ittype.kind ==  CompletionKind.interfaceName ||
+                                ittype.kind ==  CompletionKind.enumName ||
+                                ittype.kind ==  CompletionKind.unionName ||
+                                ittype.kind ==  CompletionKind.aliasName
+                            )
+                        )
+                            ret ~= from_kind(ittype.kind) ~ " ";
+                        ret ~= sym.type.formatType();
+                    }
+                }
+                else if (sym.kind == CompletionKind.aliasName)
+                {
+                    ret ~= "alias => ";
+                    if (sym.type != null)
+                    {
+
+                        ret ~= sym.type.formatType();
+                    }
+                }
+            }
+
+            if (i < stuff.symbols.length-1)
+                ret ~= "\n";
         }
     }
     return ret;
