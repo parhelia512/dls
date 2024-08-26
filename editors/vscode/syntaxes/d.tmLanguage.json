@@ -284,6 +284,10 @@
                     "match": "(?<!\\$)\\bassert\\b(?!\\$)"
                 },
                 {
+                    "name": "keyword.control.panic.d",
+                    "match": "(?<!\\$)\\bpanic\\b(?!\\$)"
+                },
+                {
                     "name": "keyword.control.new.d",
                     "match": "(?<!\\$)\\b(new)\\b(?!\\$)"
                 },
