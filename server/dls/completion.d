@@ -22,7 +22,7 @@ void lsp_completion(int id, cjson.cJSON * params_json) {
 
     auto it = cast(string) buffer.content[0..strlen(buffer.content)];
     auto pos = positionToBytes(it, document.line, document.character);
-    auto dcdResponse = dcd_complete(buffer.content, pos);
+    auto dcdResponse = dcd_complete(document.uri, buffer.content, pos);
 
     auto obj = cjson.cJSON_CreateObject();
 

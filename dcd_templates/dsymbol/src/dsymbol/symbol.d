@@ -173,6 +173,7 @@ struct DSymbol
 			if (part.owned)
 			{
 				assert(part.ptr !is null);
+
 				typeid(DSymbol).destroy(part.ptr);
 			}
 			else
@@ -433,7 +434,8 @@ struct DSymbol
 		bool, "_flag8", 1,
 		bool, "_flag9", 1,
 		bool, "_flag10", 1,
-		uint, "", 3,
+		bool, "generated", 1,
+		uint, "", 2,
 	));
 	// dfmt on
 
@@ -454,6 +456,7 @@ struct DSymbol
 	/// Only valid for parameters: the parameter has storage class `in`
 	alias parameterIsIn = _flag10;
 
+
 	deprecated bool isPointer()
 	{
 		return qualifier == SymbolQualifier.pointer;
@@ -467,7 +470,7 @@ struct DSymbol
 		if (kind == CompletionKind.functionName)
 		{
 			if (type) // try to give return type symbol
-				return type.formatType;
+				return type.formatType();
 			else // null if unresolved, user can manually pick .name or .callTip if needed
 				return null;
 		}
@@ -543,15 +546,31 @@ alias UpdatePairCollection = TTree!(UpdatePair, UpdatePairCollectionAllocator, f
 
 void generateUpdatePairs(DSymbol* oldSymbol, DSymbol* newSymbol, ref UpdatePairCollection results)
 {
-	results.insert(UpdatePair(oldSymbol, newSymbol));
-	foreach (part; oldSymbol.parts[])
-	{
-		auto temp = DSymbol(oldSymbol.name);
-		auto r = newSymbol.parts.equalRange(SymbolOwnership(&temp));
-		if (r.empty)
-			continue;
-		generateUpdatePairs(part, r.front, results);
-	}
+    results.insert(UpdatePair(oldSymbol, newSymbol));
+    foreach (part; oldSymbol.opSlice())
+    {
+		bool has = false;
+		DSymbol* r = null;
+		foreach (newPart; newSymbol.opSlice())
+		{
+			if(part == newPart)
+			{
+				has = true;
+				r = newPart;
+				break;
+			}
+
+			if (part.name == newPart.name && part.location == newPart.location)
+			{
+				has = true;
+				r = newPart;
+				break;
+			}
+		}
+		if (!has) continue;
+
+		generateUpdatePairs(part, r, results);
+    }
 }
 
 struct SymbolOwnership

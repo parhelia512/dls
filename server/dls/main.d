@@ -188,6 +188,9 @@ void handle_request(C.cJSON* request) {
     else if (strcmp(method, "textDocument/hover") == 0) {
         lsp_hover(id, params_json);
     }
+    else if (strcmp(method, "textDocument/didSave") == 0) {
+        lsp_did_save(params_json);
+    }
     //else if (strcmp(method, "textDocument/semanticTokens/full") == 0) {
     //    lsp_semantic_tokens(id, params_json, true);
     //}
@@ -265,7 +268,7 @@ void lsp_initialize_params(int id, C.cJSON* params_json)
     LINFO("root path: {}", rootPath);
     LINFO("import paths: {}", size);
 
-    extraImports = arena.allocator().alloc!(string)(size);
+    extraImports = arena.allocator().alloc!(string)(size + 1);
     for (int i = 0; i < size; i++)
     {
         auto item = C.cJSON_GetArrayItem(importPaths_json, i);
@@ -295,6 +298,7 @@ void lsp_initialize_params(int id, C.cJSON* params_json)
             }
         }
     }
+    extraImports[$-1] = rootPathStr;
     dcd_add_imports(importPaths);
     dcd_add_imports(extraImports);
 }
@@ -415,6 +419,28 @@ void lsp_sync_close(C.cJSON* params_json) {
 
     close_buffer(uri);
     //lsp_lint_clear(uri);
+}
+
+
+/*
+{
+    "textDocument": {
+        "uri":  "file:///run/media/ryuukk/E0C0C01FC0BFFA3C/dev/kdom/projects/kshared/net/packets.d"
+    }
+}
+*/
+void lsp_did_save(C.cJSON* params_json) {
+    auto text_document_json = C.cJSON_GetObjectItem(params_json, "textDocument");
+
+    auto uri_json = C.cJSON_GetObjectItem(text_document_json, "uri");
+    char* uri = C.cJSON_GetStringValue(uri_json);
+
+    if (uri == null) {
+        LERRO("");
+        exit(1);
+    }
+
+    dcd_on_save(uri);
 }
 
 

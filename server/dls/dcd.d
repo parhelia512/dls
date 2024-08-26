@@ -6,7 +6,8 @@ extern(C) void dcd_init();
 extern(C) void dcd_add_imports(string[] importPaths);
 extern(C) void dcd_clear(string[] importPaths);
 
-extern(C) AutocompleteResponse dcd_complete(const (char) * content, int position);
+extern(C) void dcd_on_save(const(char)* filename);
+extern(C) AutocompleteResponse dcd_complete(const(char)* filename, const(char)* content, int position);
 
 struct AutocompleteResponse {
     static struct Completion {

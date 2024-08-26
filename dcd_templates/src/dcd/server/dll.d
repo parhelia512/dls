@@ -43,10 +43,32 @@ extern(C) export void dcd_clear()
     cache.clear();
 }
 
-extern(C) export AutocompleteResponse dcd_complete(const(char)* content, int position)
+extern(C) export void dcd_on_save(const(char)* filename)
+{
+    import std.algorithm.searching: startsWith;
+
+    auto p = cast(string) fromStringz(filename);
+    if (p.startsWith("file://"))
+        p = p[7 .. $];
+    auto it = cache.cacheModule(istring(p));
+    if (it)
+    {
+        foreach(im; it.getPartsByName(istring("*imported_from*")))
+        {
+            auto mf = cache.getEntryFor(im.type.symbolFile);
+            if (mf)
+            {
+                warning("remove '", im.type.symbolFile,"' from cache");
+                cache.removeFromCache(mf);
+            }
+        }
+    }
+}
+
+extern(C) export AutocompleteResponse dcd_complete(const(char)* filename, const(char)* content, int position)
 {
     AutocompleteRequest request;
-    request.fileName = "stdin";
+    request.fileName = cast(string) fromStringz(filename);
     request.cursorPosition = position;
     request.kind |= RequestKind.autocomplete;
     request.sourceCode = cast(ubyte[]) fromStringz(content);
@@ -112,6 +134,7 @@ extern(C) export DSymbolInfo[] dcd_document_symbols(const(char)* content)
 
         p += 1;
 
+
         info.name = it.name;
         info.range[0] = it.location;
 
@@ -124,6 +147,7 @@ extern(C) export DSymbolInfo[] dcd_document_symbols(const(char)* content)
         foreach(sym; it.opSlice())
         {
             if (sym.symbolFile != "stdin") continue;
+            if (sym.generated) continue;
             if (
                 (sym.kind == CompletionKind.functionName 
                 || sym.kind == CompletionKind.enumName
@@ -144,6 +168,7 @@ extern(C) export DSymbolInfo[] dcd_document_symbols(const(char)* content)
     foreach (symbol; pair.scope_.symbols)
     {
         if (symbol.symbolFile != "stdin") continue;
+        if (symbol.generated) continue;
         DSymbolInfo info;
         check(symbol, pos, &info);
         ret ~= info;

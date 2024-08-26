@@ -49,6 +49,7 @@ void writeln(F, A...)(F f, A args)
 }
 
 
+
 /**
  * First Pass handles the following:
  * $(UL
@@ -135,13 +136,34 @@ final class FirstPass : ASTVisitor
 	{
 		visitDestructor(des.location, des.functionBody, des.comment);
 	}
+/*
+	override void visit(const VersionCondition vc)
+	{
+		warning("  VersionCondition: ", vc.token.text);
+		vc.accept(this);
+		//versionBuffer.push_back(vc.token.text);
+	}
 
-	//override void visit(const VersionCondition vc)
-	//{
-    //    writeln("  VersionCondition: ", vc.token.text);
-    //    //versionBuffer.push_back(vc.token.text);
-	//}
+	override void visit(const ConditionalStatement vc)
+	{
+		warning("  ConditionalStatement: ", vc);
+		vc.accept(this);
+		//versionBuffer.push_back(vc.token.text);
+	}
 
+	override void visit(const ExpressionStatement vc)
+	{
+		warning("  ExpressionStatement: ", vc);
+		vc.accept(this);
+		//versionBuffer.push_back(vc.token.text);
+	}
+	override void visit(const Statement vc)
+	{
+		warning("  Statement: ", vc);
+		vc.accept(this);
+		//versionBuffer.push_back(vc.token.text);
+	}
+*/
 	//override void visit(const FunctionCallExpression fce)
 	//{
 	//	assert(fce);
@@ -902,6 +924,7 @@ final class FirstPass : ASTVisitor
 
 	override void visit(const Declaration dec)
 	{
+		//warning("  Declaration: ", dec);
 		if (dec.attributeDeclaration !is null
 			&& isProtection(dec.attributeDeclaration.attribute.attribute.type))
 		{
@@ -1004,7 +1027,7 @@ final class FirstPass : ASTVisitor
 		scope (exit) protection.endScope();
 
 
-        currentSymbol.acSymbol.location_end = structBody.endLocation;
+		currentSymbol.acSymbol.location_end = structBody.endLocation;
 
 		auto savedStructFieldNames = move(structFieldNames);
 		auto savedStructFieldTypes = move(structFieldTypes);
@@ -1014,7 +1037,7 @@ final class FirstPass : ASTVisitor
 		DSymbol* thisSymbol = GCAllocator.instance.make!DSymbol(THIS_SYMBOL_NAME,
 			CompletionKind.variableName, currentSymbol.acSymbol);
 		thisSymbol.location = currentScope.startLocation;
-        thisSymbol.location_end = currentScope.endLocation;
+		thisSymbol.location_end = currentScope.endLocation;
 		thisSymbol.symbolFile = symbolFile;
 		thisSymbol.type = currentSymbol.acSymbol;
 		thisSymbol.ownType = false;
@@ -1161,7 +1184,7 @@ final class FirstPass : ASTVisitor
 	// Create scope for block statements
 	override void visit(const BlockStatement blockStatement)
 	{
-    	//writeln("      BlockStatement");
+		//warning("    BlockStatement");
 		if (blockStatement.declarationsAndStatements !is null)
 		{
 			pushScope(blockStatement.startLocation, blockStatement.endLocation);
@@ -1171,11 +1194,11 @@ final class FirstPass : ASTVisitor
 	}
 
 	//override void visit(const ConditionalStatement conditionalStatement)
-    //{
-    //    writeln("ConditionalStatement");
-    //    //versionBuffer.pop_front();
+	//{
+	//    writeln("ConditionalStatement");
+	//    //versionBuffer.pop_front();
 
-    //}
+	//}
 
 	// Create attribute/protection scope for conditional compilation declaration
 	// blocks.
@@ -1183,17 +1206,18 @@ final class FirstPass : ASTVisitor
 	{
 		if (conditionalDecl.compileCondition !is null)
 		{
-            writeln("ConditionalDeclaration");
-        	///"conditional declration");
-            //pushScope();
-			//visit(conditionalDecl.compileCondition);
-            //currentScope.version_ = currentVersion;
-            //popScope();
-            //writeln("conditional declration end");
+			//warning("    ConditionalDeclaration compileCondition");
+			///"conditional declration");
+			//pushScope();
+			visit(conditionalDecl.compileCondition);
+			//currentScope.version_ = currentVersion;
+			//popScope();
+			//writeln("conditional declration end");
 		}
 
-		if (conditionalDecl.trueDeclarations.length)
+		if (conditionalDecl.trueDeclarations.length > 0)
 		{
+			//warning("    ConditionalDeclaration trueDeclarations");
 			protection.beginScope();
 			scope (exit) protection.endScope();
 
@@ -1202,8 +1226,9 @@ final class FirstPass : ASTVisitor
 					visit (decl);
 		}
 
-		if (conditionalDecl.falseDeclarations.length)
+		if (conditionalDecl.falseDeclarations.length > 0)
 		{
+			//warning("    ConditionalDeclaration falseDeclarations");
 			protection.beginScope();
 			scope (exit) protection.endScope();
 
@@ -1399,12 +1424,13 @@ private:
 		SemanticSymbol* symbol = allocateSemanticSymbol(CONSTRUCTOR_SYMBOL_NAME,
 			CompletionKind.functionName, symbolFile, currentSymbol.acSymbol.location);
 		symbol.acSymbol.callTip = istring(app.data);
+		symbol.acSymbol.generated = true;
 		currentSymbol.addChild(symbol, true);
 	}
 
 	void pushScope(size_t startLocation, size_t endLocation)
 	{
-        //writeln("> pushScope: ", startLocation, ":", endLocation);
+		//writeln("> pushScope: ", startLocation, ":", endLocation);
 		assert (startLocation < uint.max);
 		assert (endLocation < uint.max || endLocation == size_t.max);
 		Scope* s = GCAllocator.instance.make!Scope(cast(uint) startLocation, cast(uint) endLocation);
@@ -1486,6 +1512,7 @@ private:
 			immutable size_t scopeEnd = dec.endLocation;
 		else
 			immutable size_t scopeEnd = dec.structBody is null ? scopeBegin : dec.structBody.endLocation;
+
 		pushScope(scopeBegin, scopeEnd);
 		scope(exit) popScope();
 		protection.beginScope();

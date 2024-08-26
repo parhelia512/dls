@@ -43,7 +43,7 @@ import dsymbol.modulecache;
 import dsymbol.scope_;
 import dsymbol.string_interning;
 import dsymbol.symbol;
-import dsymbol.ufcs;
+//import dsymbol.ufcs;
 import dsymbol.utils;
 
 import dcd.common.constants;
@@ -179,8 +179,7 @@ public AutocompleteResponse complete(const AutocompleteRequest request,
  * Returns:
  *     the autocompletion response
  */
-AutocompleteResponse dotCompletion(T)(T beforeTokens, const(Token)[] tokenArray,
-	size_t cursorPosition, ref ModuleCache moduleCache)
+AutocompleteResponse dotCompletion(T)(T beforeTokens, const(Token)[] tokenArray, size_t cursorPosition, ref ModuleCache moduleCache)
 {
 	AutocompleteResponse response;
 
@@ -213,7 +212,7 @@ AutocompleteResponse dotCompletion(T)(T beforeTokens, const(Token)[] tokenArray,
 				partial = "";
 			}
 		}
-		significantTokenType = partial.length ? tok!"identifier" : tok!"";
+		significantTokenType = partial.length > 0 ? tok!"identifier" : tok!"";
 		beforeTokens = beforeTokens[0 .. $ - 1];
 	}
 	else if (beforeTokens.length >= 2 && beforeTokens[$ - 1] == tok!".")
@@ -230,15 +229,19 @@ AutocompleteResponse dotCompletion(T)(T beforeTokens, const(Token)[] tokenArray,
 	case tok!")":
 	case tok!"]":
 		RollbackAllocator rba;
+
 		ScopeSymbolPair pair = generateAutocompleteTrees(tokenArray, &rba, cursorPosition, moduleCache);
 		scope(exit) pair.destroy();
-		response.setCompletions(pair.scope_, getExpression(beforeTokens),
-			cursorPosition, CompletionType.identifiers, CalltipHint.none, partial);
-		if (!pair.ufcsSymbols.empty) {
-			response.completions ~= pair.ufcsSymbols.map!(s => makeSymbolCompletionInfo(s, CompletionKind.ufcsName)).array;
-			// Setting CompletionType in case of none symbols are found via setCompletions, but we have UFCS symbols.
-			response.completionType = CompletionType.identifiers;
-		}
+
+		// auto expression = getExpression(beforeTokens[0 .. $ - endOffset]);
+		auto expression = getExpression(beforeTokens);
+
+		response.setCompletions(pair.scope_, expression, cursorPosition, CompletionType.identifiers, CalltipHint.none, partial);
+		//if (!pair.ufcsSymbols.empty) {
+		//	response.completions ~= pair.ufcsSymbols.map!(s => makeSymbolCompletionInfo(s, CompletionKind.ufcsName)).array;
+		//	// Setting CompletionType in case of none symbols are found via setCompletions, but we have UFCS symbols.
+		//	response.completionType = CompletionType.identifiers;
+		//}
 		break;
 	//  these tokens before a "." mean "Module Scope Operator"
 	case tok!":":
@@ -331,11 +334,11 @@ AutocompleteResponse calltipCompletion(T)(T beforeTokens,
 
 		response.setCompletions(pair.scope_, expression,
 			cursorPosition, CompletionType.calltips, calltipHint);
-		if (!pair.ufcsSymbols.empty) {
-			response.completions ~= pair.ufcsSymbols.map!(s => makeSymbolCompletionInfo(s, CompletionKind.ufcsName)).array;
-			// Setting CompletionType in case of none symbols are found via setCompletions, but we have UFCS symbols.
-			response.completionType = CompletionType.calltips;
-		}
+		//if (!pair.ufcsSymbols.empty) {
+		//	response.completions ~= pair.ufcsSymbols.map!(s => makeSymbolCompletionInfo(s, CompletionKind.ufcsName)).array;
+		//	// Setting CompletionType in case of none symbols are found via setCompletions, but we have UFCS symbols.
+		//	response.completionType = CompletionType.calltips;
+		//}
 		break;
 	default:
 

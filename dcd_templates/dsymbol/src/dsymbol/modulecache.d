@@ -143,6 +143,11 @@ struct ModuleCache
 		importPaths.clear();
 	}
 
+	void removeFromCache(CacheEntry* e)
+	{
+		cache.remove(e, entry => CacheAllocator.instance.dispose(entry));
+	}
+
 	/**
 	 * Caches the module at the given location
 	 */
@@ -160,6 +165,8 @@ struct ModuleCache
 		if (!needsReparsing(cachedLocation))
 			return getEntryFor(cachedLocation).symbol;
 
+		warning("caching: ", location);
+
 		recursionGuard.insert(&cachedLocation.data[0]);
 
 		File f = File(cachedLocation);
@@ -173,7 +180,10 @@ struct ModuleCache
 			ubyte[] source = cast(ubyte[]) Mallocator.instance.allocate(fileSize);
 			scope (exit) Mallocator.instance.deallocate(source);
 			f.rawRead(source);
+
 			LexerConfig config;
+
+
 			config.fileName = cachedLocation;
 
 			// The first three bytes are sliced off here if the file starts with a
@@ -193,7 +203,7 @@ struct ModuleCache
 		scope first = new FirstPass(m, cachedLocation, &this, newEntry);
 		first.run();
 
-		secondPass(first.rootSymbol, first.moduleScope, this);
+		secondPass(first.rootSymbol, first.rootSymbol, first.moduleScope, this);
 
 		typeid(Scope).destroy(first.moduleScope);
 		symbolsAllocated += first.symbolsAllocated;
@@ -249,7 +259,7 @@ struct ModuleCache
 			assert(deferred.symbol.type is null);
 			if (deferred.symbol.kind == CompletionKind.importSymbol)
 			{
-				resolveImport(deferred.symbol, deferred.typeLookups, this);
+				resolveImport(null, deferred.symbol, deferred.typeLookups, this);
 			}
 			else if (!deferred.typeLookups.empty)
 			{
@@ -370,8 +380,6 @@ struct ModuleCache
 	/// Count of autocomplete symbols that have been allocated
 	uint symbolsAllocated;
 
-private:
-
 	CacheEntry* getEntryFor(istring cachedLocation)
 	{
 		CacheEntry dummy;
@@ -379,6 +387,9 @@ private:
 		auto r = cache.equalRange(&dummy);
 		return r.empty ? null : r.front;
 	}
+private:
+
+
 
 	/**
 	 * Params:

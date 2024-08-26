@@ -59,7 +59,7 @@ void print_tab(int index)
 }
 
 
-void secondPass(SemanticSymbol* currentSymbol, Scope* moduleScope, ref ModuleCache cache)
+void secondPass(SemanticSymbol* rootModule, SemanticSymbol* currentSymbol, Scope* moduleScope, ref ModuleCache cache)
 {
     writeln("-- second pass: begin");
 	with (CompletionKind) final switch (currentSymbol.acSymbol.kind)
@@ -106,7 +106,7 @@ void secondPass(SemanticSymbol* currentSymbol, Scope* moduleScope, ref ModuleCac
 		break;
 	case importSymbol:
 		if (currentSymbol.acSymbol.type is null)
-			resolveImport(currentSymbol.acSymbol, currentSymbol.typeLookups, cache);
+			resolveImport(rootModule.acSymbol, currentSymbol.acSymbol, currentSymbol.typeLookups, cache);
 		break;
 	case variadicTmpParam:
 		currentSymbol.acSymbol.type = variadicTmpParamSymbol;
@@ -133,15 +133,15 @@ void secondPass(SemanticSymbol* currentSymbol, Scope* moduleScope, ref ModuleCac
 	// code from the parent not yet resolved (templates)
 	foreach (child; currentSymbol.children)
 		if (child.acSymbol.kind != CompletionKind.variableName && child.acSymbol.kind != CompletionKind.functionName)
-			secondPass(child, moduleScope, cache);
+			secondPass(rootModule, child, moduleScope, cache);
 
 	foreach (child; currentSymbol.children)
 		if (child.acSymbol.kind == CompletionKind.variableName)
-			secondPass(child, moduleScope, cache);
+			secondPass(rootModule, child, moduleScope, cache);
 
 	foreach (child; currentSymbol.children)
 		if (child.acSymbol.kind == CompletionKind.functionName)
-			secondPass(child, moduleScope, cache);
+			secondPass(rootModule, child, moduleScope, cache);
 
 
 	// Alias this and mixin templates are resolved after child nodes are
@@ -612,7 +612,7 @@ void resolveTemplate(DSymbol* variableSym, DSymbol* type, TypeLookup* lookup, Va
 	variableSym.ownType = true;
 }
 
-void resolveImport(DSymbol* acSymbol, ref TypeLookups typeLookups,
+void resolveImport(DSymbol* rootModule, DSymbol* acSymbol, ref TypeLookups typeLookups,
 	ref ModuleCache cache)
 in
 {
@@ -622,6 +622,13 @@ in
 do
 {
 	DSymbol* moduleSymbol = cache.cacheModule(acSymbol.symbolFile);
+	// store the module that imports it if it is a public import
+	if (rootModule && moduleSymbol && acSymbol.skipOver == false) // public import
+	{
+		warning("store: ", rootModule.symbolFile," -> ", acSymbol.symbolFile);
+		auto importedFromSym = GCAllocator.instance.make!DSymbol("*imported_from*", CompletionKind.dummy, rootModule);
+		moduleSymbol.addChild(importedFromSym, true);
+	}
 	if (acSymbol.qualifier == SymbolQualifier.selectiveImport)
 	{
 		if (moduleSymbol is null)

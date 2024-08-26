@@ -31,7 +31,7 @@ import dsymbol.scope_;
 import dsymbol.semantic;
 import dsymbol.string_interning;
 import dsymbol.symbol;
-import dsymbol.ufcs;
+//import dsymbol.ufcs;
 import std.algorithm;
 import std.experimental.allocator;
 import containers.hashset;
@@ -49,7 +49,7 @@ ScopeSymbolPair generateAutocompleteTrees(const(Token)[] tokens,
 	scope first = new FirstPass(m, internString("stdin"), &cache);
 	first.run();
 
-	secondPass(first.rootSymbol, first.moduleScope, cache);
+	secondPass(first.rootSymbol, first.rootSymbol, first.moduleScope, cache);
 
 	thirdPass(first.rootSymbol, first.moduleScope, cache, cursorPosition);
 
@@ -57,7 +57,7 @@ ScopeSymbolPair generateAutocompleteTrees(const(Token)[] tokens,
 
 	auto r = move(first.rootSymbol.acSymbol);
 	typeid(SemanticSymbol).destroy(first.rootSymbol);
-	return ScopeSymbolPair(r, move(first.moduleScope), []);
+	return ScopeSymbolPair(r, move(first.moduleScope));
 }
 
 struct ScopeSymbolPair
@@ -72,7 +72,7 @@ struct ScopeSymbolPair
 
 	DSymbol* symbol;
 	Scope* scope_;
-	DSymbol*[] ufcsSymbols;
+	//DSymbol*[] ufcsSymbols;
 }
 
 /**
