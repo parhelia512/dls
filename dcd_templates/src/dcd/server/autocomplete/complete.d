@@ -67,6 +67,8 @@ public AutocompleteResponse complete(const AutocompleteRequest request,
 	ref ModuleCache moduleCache)
 {
 	import std.stdio;
+	import core.memory: GC;
+	scope(exit) GC.collect();
 	//writeln("\n\n-----");
 	//scope (exit)
 	//writeln("-----\n\n\n");
@@ -235,6 +237,17 @@ AutocompleteResponse dotCompletion(T)(T beforeTokens, const(Token)[] tokenArray,
 
 		// auto expression = getExpression(beforeTokens[0 .. $ - endOffset]);
 		auto expression = getExpression(beforeTokens);
+
+
+		foreach(s; pair.scope_.symbols())
+		{
+			if (s.ptr.name == "Data")
+			{
+				foreach(it; s.ptr.opSlice())
+					warning("  ", it.name," ", it.kind," ",it.qualifier);
+			}
+		}
+
 
 		response.setCompletions(pair.scope_, expression, cursorPosition, CompletionType.identifiers, CalltipHint.none, partial);
 		//if (!pair.ufcsSymbols.empty) {
