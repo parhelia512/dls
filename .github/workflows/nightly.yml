@@ -28,7 +28,7 @@ jobs:
         mkdir dist
         mv bin/dls dist/dls-x86_64-linux
     - name: Upload artifacts
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: dist-x86_64-linux
         path: ./dist
@@ -65,7 +65,7 @@ jobs:
         echo "rename dls.exe"
         ren dls.exe dls-x86_64-windows.exe
     - name: Upload artifacts
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: dist-x86_64-windows
         path: ./dist
@@ -88,12 +88,12 @@ jobs:
     - run: echo "HEAD_SHA=$(git rev-parse HEAD)" >> $GITHUB_ENV
     - run: 'echo "HEAD_SHA: $HEAD_SHA"'
 
-    - uses: actions/download-artifact@v2
+    - uses: actions/download-artifact@v3
       with:
         name: dist-x86_64-linux
         path: dist
 
-    - uses: actions/download-artifact@v2
+    - uses: actions/download-artifact@v3
       with:
         name: dist-x86_64-windows
         path: dist
