@@ -28,7 +28,7 @@ jobs:
         mkdir dist
         mv bin/dls dist/dls-x86_64-linux
     - name: Upload artifacts
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: dist-x86_64-linux
         path: ./dist
@@ -65,7 +65,7 @@ jobs:
         echo "rename dls.exe"
         ren dls.exe dls-x86_64-windows.exe
     - name: Upload artifacts
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: dist-x86_64-windows
         path: ./dist
