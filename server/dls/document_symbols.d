@@ -29,7 +29,7 @@ void lsp_document_symbol(int id, cjson.cJSON* params_json) {
     auto buffer = get_buffer(uri);
     auto it = cast(string) buffer.content[0..strlen(buffer.content)];
 
-    auto symbols = dcd_document_symbols(buffer.content);
+    auto symbols = dcd_document_symbols(uri, buffer.content);
 
     auto root = cjson.cJSON_CreateArray();
 

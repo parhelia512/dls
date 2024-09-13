@@ -45,7 +45,7 @@ void lsp_definition(int id, cjson.cJSON * params_json) {
     auto it = cast(string) buffer.content[0..strlen(buffer.content)];
     auto pos = positionToBytes(it, doc.line, doc.character);
 
-    auto locations = dcd_definition(buffer.content, pos);
+    auto locations = dcd_definition(doc.uri, buffer.content, pos);
     auto root = cjson.cJSON_CreateArray();
 
     foreach(loc; locations)

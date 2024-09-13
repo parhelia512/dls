@@ -85,8 +85,8 @@ struct DSymbolInfo
     DSymbolInfo[] children;
 }
 
-extern(C) DSymbolInfo[] dcd_document_symbols(const(char)* content);
-extern(C) DSymbolInfo[] dcd_document_symbols_sem(const(char)* content);
+extern(C) DSymbolInfo[] dcd_document_symbols(const(char)* filename, const(char)* content);
+extern(C) DSymbolInfo[] dcd_document_symbols_sem(const(char)* filename, const(char)* content);
 
 
 
@@ -96,5 +96,5 @@ struct Location
     size_t position;
 }
 
-extern(C) Location[] dcd_definition(const(char)* content, int position);
-extern(C) export string[] dcd_hover(const(char)* content, int position);
+extern(C) Location[] dcd_definition(const(char)* filename, const(char)* content, int position);
+extern(C) export string[] dcd_hover(const(char)* filename, const(char)* content, int position);

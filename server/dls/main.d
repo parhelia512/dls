@@ -48,6 +48,9 @@ extern(C) void j_free(void* ptr) {
 
 
 extern(C) void main(int argc, char** argv) {
+
+    LOG_FLAG.info = 0;
+
     arena = mem.ArenaAllocator.create(mem.c_allocator);
     // TODO: remove this
     //  - auto detect dmd/ldc

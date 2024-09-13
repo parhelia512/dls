@@ -2,6 +2,7 @@ module dcd.server.dll;
 
 import std.experimental.logger: warning;
 import std.string: fromStringz;
+import std.datetime.systime;
 
 import core.runtime;
 import core.stdc.stdio;
@@ -44,26 +45,7 @@ extern(C) export void dcd_clear()
 }
 
 extern(C) export void dcd_on_save(const(char)* filename)
-{
-    import std.algorithm.searching: startsWith;
-
-    auto p = cast(string) fromStringz(filename);
-    if (p.startsWith("file://"))
-        p = p[7 .. $];
-    auto it = cache.cacheModule(istring(p));
-    if (it)
-    {
-        foreach(im; it.getPartsByName(istring("*imported_from*")))
-        {
-            auto mf = cache.getEntryFor(im.type.symbolFile);
-            if (mf)
-            {
-                warning("remove '", im.type.symbolFile,"' from cache");
-                cache.removeFromCache(mf);
-            }
-        }
-    }
-}
+{}
 
 extern(C) export AutocompleteResponse dcd_complete(const(char)* filename, const(char)* content, int position)
 {
@@ -85,7 +67,7 @@ struct DSymbolInfo
     DSymbolInfo[] children;
 }
 
-extern(C) export DSymbolInfo[] dcd_document_symbols(const(char)* content)
+extern(C) export DSymbolInfo[] dcd_document_symbols(const(char)* filename, const(char)* content)
 {
     import containers.ttree : TTree;
     import containers.hashset;
@@ -110,7 +92,7 @@ extern(C) export DSymbolInfo[] dcd_document_symbols(const(char)* content)
     DSymbolInfo[] ret;
 
     AutocompleteRequest request;
-    request.fileName = "stdin";
+    request.fileName = cast(string) fromStringz(filename);
     request.cursorPosition = 0;
     request.kind |= RequestKind.autocomplete;
     request.sourceCode = cast(ubyte[]) fromStringz(content);
@@ -177,7 +159,7 @@ extern(C) export DSymbolInfo[] dcd_document_symbols(const(char)* content)
     return ret;
 }
 
-extern(C) export DSymbolInfo[] dcd_document_symbols_sem(const(char)* content)
+extern(C) export DSymbolInfo[] dcd_document_symbols_sem(const(char)* filename, const(char)* content)
 {
     import containers.ttree : TTree;
     import containers.hashset;
@@ -202,7 +184,7 @@ extern(C) export DSymbolInfo[] dcd_document_symbols_sem(const(char)* content)
     DSymbolInfo[] ret;
 
     AutocompleteRequest request;
-    request.fileName = "stdin";
+    request.fileName = cast(string) fromStringz(filename);
     request.cursorPosition = 0;
     request.kind |= RequestKind.autocomplete;
     request.sourceCode = cast(ubyte[]) fromStringz(content);
@@ -275,7 +257,7 @@ struct Location
     size_t position;
 }
 
-extern(C) export Location[] dcd_definition(const(char)* content, int position)
+extern(C) export Location[] dcd_definition(const(char)* filename, const(char)* content, int position)
 {
     import containers.ttree : TTree;
     import containers.hashset;
@@ -298,7 +280,7 @@ extern(C) export Location[] dcd_definition(const(char)* content, int position)
     import dcd.common.messages;
 
     AutocompleteRequest request;
-    request.fileName = "stdin";
+    request.fileName = cast(string) fromStringz(filename);
     request.cursorPosition = position;
     request.kind |= RequestKind.autocomplete;
     request.sourceCode = cast(ubyte[]) fromStringz(content);
@@ -335,7 +317,7 @@ string from_kind(CompletionKind kind)
     }
 }
 
-extern(C) export string[] dcd_hover(const(char)* content, int position)
+extern(C) export string[] dcd_hover(const(char)* filename, const(char)* content, int position)
 {
     import containers.ttree : TTree;
     import containers.hashset;
@@ -358,7 +340,7 @@ extern(C) export string[] dcd_hover(const(char)* content, int position)
     import dcd.common.messages;
 
     AutocompleteRequest request;
-    request.fileName = "stdin";
+    request.fileName = cast(string) fromStringz(filename);
     request.cursorPosition = position;
     request.kind |= RequestKind.autocomplete;
     request.sourceCode = cast(ubyte[]) fromStringz(content);

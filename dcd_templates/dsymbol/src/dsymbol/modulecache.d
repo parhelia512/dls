@@ -143,11 +143,6 @@ struct ModuleCache
 		importPaths.clear();
 	}
 
-	void removeFromCache(CacheEntry* e)
-	{
-		cache.remove(e, entry => CacheAllocator.instance.dispose(entry));
-	}
-
 	/**
 	 * Caches the module at the given location
 	 */
@@ -163,6 +158,7 @@ struct ModuleCache
 		if (recursionGuard.contains(&cachedLocation.data[0]))
 			return null;
 
+		//warning("checking cache: ", location);
 		if (!needsReparsing(cachedLocation))
 			return getEntryFor(cachedLocation).symbol;
 
@@ -229,6 +225,8 @@ struct ModuleCache
 			// Apply updates to all symbols in modules that depend on this one
 			cache[].filter!(a => a.dependencies.contains(cachedLocation)).each!(
 				upstream => upstream.symbol.updateTypes(updatePairs));
+
+
 
 			// Remove the old symbol.
 			cache.remove(oldEntry, entry => CacheAllocator.instance.dispose(entry));
@@ -409,9 +407,28 @@ private:
 		auto r = cache.equalRange(&e);
 		if (r.empty)
 			return true;
+
+		auto m = r.front.symbol;
 		SysTime access;
 		SysTime modification;
 		getTimes(mod.data, access, modification);
+
+
+		foreach(it; m.opSlice())
+		{
+			bool dirty = false;
+			it.getPublicImports( (p) {
+					auto ee = getEntryFor(p.symbolFile);
+					if (ee)
+					{
+						if (ee.modificationTime > modification) dirty = true;
+					}
+				}
+			);
+			if (dirty) return true;
+		}
+
+
 		return r.front.modificationTime != modification;
 	}
 

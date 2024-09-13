@@ -45,7 +45,7 @@ void lsp_hover(int id, cjson.cJSON * params_json) {
     auto it = cast(string) buffer.content[0..strlen(buffer.content)];
     auto pos = positionToBytes(it, doc.line, doc.character);
 
-    auto defs = dcd_hover(buffer.content, pos);
+    auto defs = dcd_hover(doc.uri, buffer.content, pos);
 
 
     auto obj = cjson.cJSON_CreateObject();

@@ -6,6 +6,16 @@ version = DBG_PRINT_PATH;
 version = DBG_FILE_ONLY;
 //version = DBG_COLOR;
 
+struct LogFlag
+{
+    uint info: 1;
+    uint warn: 1;
+    uint erro: 1;
+}
+
+__gshared LogFlag LOG_FLAG;
+
+
 version(WebAssembly)
 {
     import rt.wasm: abort;
@@ -14,6 +24,8 @@ else
 {
     import core.stdc.stdlib: abort;
 }
+
+
 
 noreturn not_implemented(string file = __MODULE__, int line = __LINE__)
 {
@@ -40,6 +52,8 @@ void assertf(Char, A...)(bool condition, in Char[] fmt, A args, string file = __
 
 void LINFO(Char, A...)(in Char[] fmt, scope A args, string file = __MODULE__, int line = __LINE__)
 {
+    if (LOG_FLAG.info == false) return;
+
     set_color(RESET);
     write("[INFO] ");
 
@@ -55,6 +69,7 @@ void LINFO(Char, A...)(in Char[] fmt, scope A args, string file = __MODULE__, in
 
 void LWARN(Char, A...)(in Char[] fmt, scope A args, string file = __MODULE__, int line = __LINE__)
 {
+    if (LOG_FLAG.warn == false) return;
     set_color(YELLOW);
     write("[WARN] ");
 
@@ -70,6 +85,7 @@ void LWARN(Char, A...)(in Char[] fmt, scope A args, string file = __MODULE__, in
 
 void LERRO(Char, A...)(in Char[] fmt, scope A args, string file = __MODULE__, int line = __LINE__)
 {
+    if (LOG_FLAG.erro == false) return;
     set_color(RED);
     write("[ERRO] ");
 
