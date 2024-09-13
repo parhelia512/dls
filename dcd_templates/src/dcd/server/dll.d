@@ -45,7 +45,51 @@ extern(C) export void dcd_clear()
 }
 
 extern(C) export void dcd_on_save(const(char)* filename)
-{}
+{
+    import std.algorithm.searching: startsWith;
+    import std.datetime;
+
+    // TODO: make it recursive
+
+    auto p = cast(string) fromStringz(filename);
+    if (p.startsWith("file://"))
+        p = p[7 .. $];
+
+    bool dirty = false;
+
+    //warning("on_save: ", p);
+
+    auto it = cache.getEntryFor(istring(p));
+    if (it)
+    {
+        it.modificationTime = SysTime.max;
+        foreach(im; it.symbol.getPartsByName(istring("*imported_from*")))
+        {
+            auto mf = cache.getEntryFor(im.type.symbolFile);
+            if (mf)
+            {
+                //warning("remove '", im.type.symbolFile,"' from cache");
+
+                istring[] toRemove;
+                foreach(agane; mf.symbol.getPartsByName(istring("*imported_from*")))
+                {
+                    toRemove ~= agane.type.symbolFile;
+                }
+                mf.modificationTime = SysTime.max;
+
+                foreach(fu; toRemove)
+                {
+                    //warning("also remove '", fu ,"' from cache");
+                    auto aganemf = cache.getEntryFor(fu);
+                    if (aganemf)
+                    {
+                        aganemf.modificationTime = SysTime.max;
+                    }
+                }
+            }
+        }
+    }
+}
 
 extern(C) export AutocompleteResponse dcd_complete(const(char)* filename, const(char)* content, int position)
 {
