@@ -44,7 +44,7 @@ extern(C) export void dcd_clear()
     cache.clear();
 }
 
-extern(C) export void dcd_on_save(const(char)* filename)
+extern(C) export void dcd_on_save(const(char)* filename, const(char)* content)
 {
     import std.algorithm.searching: startsWith;
     import std.datetime;
@@ -57,47 +57,62 @@ extern(C) export void dcd_on_save(const(char)* filename)
 
     bool dirty = false;
 
-    //warning("on_save: ", p);
+    warning("on_save: ", p);
+
+
+    istring[] toRemove;
 
     auto it = cache.getEntryFor(istring(p));
     if (it)
     {
         it.modificationTime = SysTime.max;
-        foreach(im; it.symbol.getPartsByName(istring("*imported_from*")))
-        {
+
+        it.symbol.getImportedFromSymbols( (im) {
             auto mf = cache.getEntryFor(im.type.symbolFile);
-            if (mf)
-            {
-                //warning("remove '", im.type.symbolFile,"' from cache");
+            if (mf == null) return;
+            toRemove ~= im.type.symbolFile;
 
-                istring[] toRemove;
-                foreach(agane; mf.symbol.getPartsByName(istring("*imported_from*")))
-                {
-                    toRemove ~= agane.type.symbolFile;
-                }
-                mf.modificationTime = SysTime.max;
+            mf.symbol.getImportedFromSymbols( (agane) {
+                toRemove ~= agane.type.symbolFile;
+            } );
 
-                foreach(fu; toRemove)
-                {
-                    //warning("also remove '", fu ,"' from cache");
-                    auto aganemf = cache.getEntryFor(fu);
-                    if (aganemf)
-                    {
-                        aganemf.modificationTime = SysTime.max;
-                    }
-                }
-            }
-        }
+            mf.symbol.getPublicImports( (agane) {
+                toRemove ~= agane.type.symbolFile;
+            });
+
+        } );
+    } else warning("no cache found");
+
+    foreach(mtu; toRemove)
+    {
+        auto e = cache.getEntryFor(mtu);
+        if(!e) continue;
+
+        warning("   reset: ", mtu);
+        e.modificationTime = SysTime.max;
     }
+
+    //cache.cacheModule(p, toRemove);
 }
 
 extern(C) export AutocompleteResponse dcd_complete(const(char)* filename, const(char)* content, int position)
 {
+    import std.algorithm.searching: startsWith;
+    auto p = cast(string) fromStringz(filename);
+    if (p.startsWith("file://"))
+        p = p[7 .. $];
+
     AutocompleteRequest request;
-    request.fileName = cast(string) fromStringz(filename);
+    request.fileName = p;
     request.cursorPosition = position;
     request.kind |= RequestKind.autocomplete;
     request.sourceCode = cast(ubyte[]) fromStringz(content);
+
+
+    auto im = istring(p);
+    //auto e = cache.getEntryFor(im);
+    //if(e) e.modificationTime = SysTime.max;
+    cache.cacheModule(im);
 
     auto ret = complete(request, cache);
     return ret;

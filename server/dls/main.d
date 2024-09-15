@@ -438,12 +438,14 @@ void lsp_did_save(C.cJSON* params_json) {
     auto uri_json = C.cJSON_GetObjectItem(text_document_json, "uri");
     char* uri = C.cJSON_GetStringValue(uri_json);
 
+    auto buffer = get_buffer(uri);
+
     if (uri == null) {
         LERRO("");
         exit(1);
     }
 
-    dcd_on_save(uri);
+    dcd_on_save(uri, buffer.content);
 }
 
 
