@@ -65,16 +65,15 @@ extern(C) export void dcd_on_save(const(char)* filename, const(char)* content)
     auto it = cache.getEntryFor(istring(p));
     if (it)
     {
-        it.modificationTime = SysTime.max;
-
+        toRemove ~= istring(p);
         it.symbol.getImportedFromSymbols( (im) {
             auto mf = cache.getEntryFor(im.type.symbolFile);
             if (mf == null) return;
-            toRemove ~= im.type.symbolFile;
+            //toRemove ~= im.type.symbolFile;
 
-            mf.symbol.getImportedFromSymbols( (agane) {
-                toRemove ~= agane.type.symbolFile;
-            } );
+            //mf.symbol.getImportedFromSymbols( (agane) {
+            //    toRemove ~= agane.type.symbolFile;
+            //} );
 
             mf.symbol.getPublicImports( (agane) {
                 toRemove ~= agane.type.symbolFile;
@@ -90,6 +89,8 @@ extern(C) export void dcd_on_save(const(char)* filename, const(char)* content)
 
         warning("   reset: ", mtu);
         e.modificationTime = SysTime.max;
+        if (it)
+            it.dependencies.insert(mtu);
     }
 
     //cache.cacheModule(p, toRemove);

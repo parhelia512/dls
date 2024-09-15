@@ -146,7 +146,7 @@ struct ModuleCache
 	/**
 	 * Caches the module at the given location
 	 */
-	DSymbol* cacheModule(string location)
+	DSymbol* cacheModule(string location, istring[] modsToUpdate = null)
 	{
 		import std.stdio : File;
 		import core.memory: GC;
@@ -195,6 +195,9 @@ struct ModuleCache
 
 		CacheEntry* newEntry = CacheAllocator.instance.make!CacheEntry();
 
+
+
+
 		import dparse.rollback_allocator:RollbackAllocator;
 		RollbackAllocator parseAllocator;
 		Module m = parseModuleSimple(tokens[], cachedLocation, &parseAllocator);
@@ -223,10 +226,9 @@ struct ModuleCache
 			generateUpdatePairs(oldEntry.symbol, newEntry.symbol, updatePairs);
 
 			// Apply updates to all symbols in modules that depend on this one
-			cache[].filter!(a => a.dependencies.contains(cachedLocation)).each!(
-				upstream => upstream.symbol.updateTypes(updatePairs));
-
-
+            cache[].filter!(a => a.dependencies.contains(cachedLocation)).each!(
+                upstream => upstream.symbol.updateTypes(updatePairs)
+            );
 
 			// Remove the old symbol.
 			cache.remove(oldEntry, entry => CacheAllocator.instance.dispose(entry));
@@ -413,18 +415,39 @@ private:
 		SysTime modification;
 		getTimes(mod.data, access, modification);
 
-
+		bool isPackage = mod.data.endsWith("package.d");
+		//warning("checking: ", mod);
 		foreach(it; m.opSlice())
 		{
 			bool dirty = false;
 			it.getPublicImports( (p) {
+                    if (p.symbolFile.length == 0)
+                        return;
 					auto ee = getEntryFor(p.symbolFile);
+					//warning("  pi: ", p.name, " ", p.symbolFile);
 					if (ee)
 					{
-						if (ee.modificationTime > modification) dirty = true;
+						if (ee.modificationTime > modification) 
+						{
+                            dirty = true;
+                            warning("    reparse: ", mod, " :: ", p.symbolFile);
+                        }
 					}
+					else warning("  none ", p.name, " ", p.kind, p.symbolFile, " t:", p.type.name, " ", p.type.kind," ", p.type.symbolFile);
 				}
 			);
+
+			//if (isPackage)
+			//{
+			//	auto ee = getEntryFor(it.symbolFile);
+
+			//	if (ee && ee.modificationTime > modification) 
+			//	{
+            //        dirty = true;
+            //    }
+			//}
+
+
 			if (dirty) return true;
 		}
 
