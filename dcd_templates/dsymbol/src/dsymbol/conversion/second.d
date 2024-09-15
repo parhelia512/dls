@@ -107,6 +107,12 @@ void secondPass(SemanticSymbol* rootModule, SemanticSymbol* currentSymbol, Scope
 	case importSymbol:
 		if (currentSymbol.acSymbol.type is null)
 			resolveImport(rootModule.acSymbol, currentSymbol.acSymbol, currentSymbol.typeLookups, cache);
+
+		//warning("root: ", rootModule.acSymbol.symbolFile, " >import> ", currentSymbol.acSymbol.symbolFile, " public:", currentSymbol.acSymbol.skipOver == false);
+
+		//auto importedFromSym = GCAllocator.instance.make!DSymbol("*public_imported*", CompletionKind.dummy, rootModule.acSymbol);
+		//currentSymbol.acSymbol.addChild(importedFromSym, true);
+
 		break;
 	case variadicTmpParam:
 		currentSymbol.acSymbol.type = variadicTmpParamSymbol;
@@ -623,10 +629,10 @@ do
 {
 	DSymbol* moduleSymbol = cache.cacheModule(acSymbol.symbolFile);
 	// store the module that imports it if it is a public import
-	if (rootModule && moduleSymbol && acSymbol.skipOver == false) // public import
+	if (rootModule && moduleSymbol) // public import
 	{
-		warning("store: ", rootModule.symbolFile," -> ", acSymbol.symbolFile);
-		auto importedFromSym = GCAllocator.instance.make!DSymbol("*imported_from*", CompletionKind.dummy, rootModule);
+		//warning("store: ", rootModule.symbolFile," -> ", acSymbol.symbolFile);
+		auto importedFromSym = GCAllocator.instance.make!(DSymbol)("*imported_from*", CompletionKind.dummy, rootModule);
 		moduleSymbol.addChild(importedFromSym, true);
 	}
 	if (acSymbol.qualifier == SymbolQualifier.selectiveImport)

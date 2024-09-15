@@ -217,17 +217,29 @@ struct DSymbol
 		return app.data.length > 0 ? cast(typeof(return)) app.data[0] : null;
 	}
 
-	/**
-	 * Gets all public imports
-	 */
-	void getPublicImports(scope void delegate(DSymbol*) dg)
-	{
-		import std.algorithm.iteration : filter;
-		foreach (part; parts[].filter!(a => a.name == IMPORT_SYMBOL_NAME && a.skipOver == false))
-		{
-			dg(cast(DSymbol*) part);
-		}
-	}
+    /**
+     * Gets all public imports
+     */
+    void getPublicImports(scope void delegate(DSymbol*) dg)
+    {
+        import std.algorithm.iteration : filter;
+        foreach (part; parts[].filter!(a => a.name == IMPORT_SYMBOL_NAME && a.skipOver == false))
+        {
+            dg(cast(DSymbol*) part);
+        }
+    }
+
+    /**
+     * Gets all imported from symbols
+     */
+    void getImportedFromSymbols(scope void delegate(DSymbol*) dg)
+    {
+        import std.algorithm.iteration : filter;
+        foreach (part; parts[].filter!(a => a.name == "*imported_from*"))
+        {
+            dg(cast(DSymbol*) part);
+        }
+    }
 
 	/**
 	 * Gets all parts and imported parts. Filters based on the part's name if
@@ -252,7 +264,7 @@ struct DSymbol
 
 		if (name is null)
 		{
-			foreach (part; parts[].filter!(a => a.name != IMPORT_SYMBOL_NAME))
+			foreach (part; parts[].filter!(a => a.name != IMPORT_SYMBOL_NAME && a.name != "*imported_from*"))
 			{
 				app.put(cast(DSymbol*) part);
 				if (onlyOne)
