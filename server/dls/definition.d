@@ -68,12 +68,20 @@ void lsp_definition(int id, cjson.cJSON * params_json) {
         // other file
         else
         {
-            auto uri = mem.dupe_add_sentinel(allocator, loc.path);
-            cjson.cJSON_AddStringToObject(item, "uri", uri.ptr);
 
-            BUFFER bufferp = get_or_open_buffer(uri.ptr);
+            char[256] newURI = "file://";
+            memcpy(newURI.ptr + 7, loc.path.ptr, loc.path.length);
+            cjson.cJSON_AddStringToObject(item, "uri", newURI.ptr);
+
+            auto rawURI = mem.dupe_add_sentinel(allocator, loc.path);
+            //cjson.cJSON_AddStringToObject(item, "uri", uri.ptr);
+
+            BUFFER bufferp = get_or_open_buffer(rawURI.ptr);
             if (bufferp.content == null) 
+            {
+                LERRO("buffer empty at: {}", rawURI.ptr);
                 continue;
+            }
 
             string itp = cast(string) bufferp.content[0 .. strlen(bufferp.content)];
             p = bytesToPosition(itp, loc.position);
