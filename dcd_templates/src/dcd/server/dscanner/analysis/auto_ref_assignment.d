@@ -1,0 +1,131 @@
+//          Copyright Brian Schott (Hackerpilot) 2015.
+// Distributed under the Boost Software License, Version 1.0.
+//    (See accompanying file LICENSE_1_0.txt or copy at
+//          http://www.boost.org/LICENSE_1_0.txt)
+
+module dcd.server.dscanner.analysis.auto_ref_assignment;
+
+import dparse.lexer;
+import dparse.ast;
+import dcd.server.dscanner.analysis.base;
+
+/**
+ * Checks for assignment to auto-ref function parameters.
+ */
+final class AutoRefAssignmentCheck : BaseAnalyzer
+{
+	mixin AnalyzerInfo!"auto_ref_assignment_check";
+
+	///
+	this(BaseAnalyzerArguments args)
+	{
+		super(args);
+	}
+
+	override void visit(const Module m)
+	{
+		pushScope();
+		m.accept(this);
+		popScope();
+	}
+
+	override void visit(const FunctionDeclaration func)
+	{
+		if (func.parameters is null || func.parameters.parameters.length == 0)
+			return;
+		pushScope();
+		scope (exit)
+			popScope();
+		func.accept(this);
+	}
+
+	override void visit(const Parameter param)
+	{
+		import std.algorithm.searching : canFind;
+
+		immutable bool isAuto = param.parameterAttributes.canFind!(a => a.idType == cast(ubyte) tok!"auto");
+		immutable bool isRef = param.parameterAttributes.canFind!(a => a.idType == cast(ubyte) tok!"ref");
+		if (!isAuto || !isRef)
+			return;
+		addSymbol(param.name.text);
+	}
+
+	override void visit(const AssignExpression assign)
+	{
+		if (assign.operator == tok!"" || scopes.length == 0)
+			return;
+		interest ~= assign;
+		assign.ternaryExpression.accept(this);
+		interest.length--;
+	}
+
+	override void visit(const IdentifierOrTemplateInstance ioti)
+	{
+		import std.algorithm.searching : canFind;
+
+		if (ioti.identifier == tok!"" || !interest.length)
+			return;
+		if (scopes[$ - 1].canFind(ioti.identifier.text))
+			addErrorMessage(interest[$ - 1], KEY, MESSAGE);
+	}
+
+	override void visit(const IdentifierChain ic)
+	{
+		import std.algorithm.searching : canFind;
+
+		if (ic.identifiers.length == 0 || !interest.length)
+			return;
+		if (scopes[$ - 1].canFind(ic.identifiers[0].text))
+			addErrorMessage(interest[$ - 1], KEY, MESSAGE);
+	}
+
+	alias visit = BaseAnalyzer.visit;
+
+private:
+
+	enum string MESSAGE = "Assignment to auto-ref function parameter.";
+	enum string KEY = "dscanner.suspicious.auto_ref_assignment";
+
+	const(AssignExpression)[] interest;
+
+	void addSymbol(string symbolName)
+	{
+		scopes[$ - 1] ~= symbolName;
+	}
+
+	void pushScope()
+	{
+		scopes.length++;
+	}
+
+	void popScope()
+	{
+		scopes = scopes[0 .. $ - 1];
+	}
+
+	string[][] scopes;
+}
+
+unittest
+{
+	import std.stdio : stderr;
+	import std.format : format;
+	import dcd.server.dscanner.analysis.config : StaticAnalysisConfig, Check, disabledConfig;
+	import dcd.server.dscanner.analysis.helpers : assertAnalyzerWarnings;
+
+	StaticAnalysisConfig sac = disabledConfig();
+	sac.auto_ref_assignment_check = Check.enabled;
+	assertAnalyzerWarnings(q{
+		int doStuff(T)(auto ref int a)
+		{
+			a = 10; /+
+			^^^^^^ [warn]: %s +/
+		}
+
+		int doStuff(T)(ref int a)
+		{
+			a = 10;
+		}
+	}c.format(AutoRefAssignmentCheck.MESSAGE), sac);
+	stderr.writeln("Unittest for AutoRefAssignmentCheck passed.");
+}
