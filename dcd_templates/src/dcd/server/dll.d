@@ -3,6 +3,17 @@ module dcd.server.dll;
 import std.experimental.logger: warning;
 import std.string: fromStringz;
 import std.datetime.systime;
+import std.experimental.allocator;
+import std.experimental.allocator.building_blocks.allocator_list;
+import std.experimental.allocator.building_blocks.region;
+import std.experimental.allocator.building_blocks.null_allocator;
+import std.experimental.allocator.mallocator : Mallocator;
+import std.experimental.allocator.gc_allocator : GCAllocator;
+
+import containers.dynamicarray;
+import containers.hashset;
+import containers.ttree;
+import containers.unrolledlist;
 
 import core.runtime;
 import core.stdc.stdio;
@@ -16,6 +27,7 @@ import dcd.server.autocomplete;
 
 import dsymbol.symbol;
 import dsymbol.modulecache;
+
 
 __gshared:
 
@@ -47,53 +59,11 @@ extern(C) export void dcd_clear()
 extern(C) export void dcd_on_save(const(char)* filename, const(char)* content)
 {
     import std.algorithm.searching: startsWith;
-    import std.datetime;
-
-    // TODO: make it recursive
-
     auto p = cast(string) fromStringz(filename);
     if (p.startsWith("file://"))
         p = p[7 .. $];
-
-    bool dirty = false;
-
-    warning("on_save: ", p);
-
-
-    istring[] toRemove;
-
-    auto it = cache.getEntryFor(istring(p));
-    if (it)
-    {
-        toRemove ~= istring(p);
-        it.symbol.getImportedFromSymbols( (im) {
-            auto mf = cache.getEntryFor(im.type.symbolFile);
-            if (mf == null) return;
-            //toRemove ~= im.type.symbolFile;
-
-            //mf.symbol.getImportedFromSymbols( (agane) {
-            //    toRemove ~= agane.type.symbolFile;
-            //} );
-
-            mf.symbol.getPublicImports( (agane) {
-                toRemove ~= agane.type.symbolFile;
-            });
-
-        } );
-    } else warning("no cache found");
-
-    foreach(mtu; toRemove)
-    {
-        auto e = cache.getEntryFor(mtu);
-        if(!e) continue;
-
-        warning("   reset: ", mtu);
-        e.modificationTime = SysTime.max;
-        if (it)
-            it.dependencies.insert(mtu);
-    }
-
-    //cache.cacheModule(p, toRemove);
+    warning("on_save:", p);
+    cache.cacheModule(p);
 }
 
 extern(C) export AutocompleteResponse dcd_complete(const(char)* filename, const(char)* content, int position)
@@ -191,7 +161,7 @@ extern(C) export DSymbolInfo[] dcd_document_symbols(const(char)* filename, const
             if (sym.symbolFile != "stdin") continue;
             if (sym.generated) continue;
             if (
-                (sym.kind == CompletionKind.functionName 
+                (sym.kind == CompletionKind.functionName
                 || sym.kind == CompletionKind.enumName
                 || sym.kind == CompletionKind.structName
                 || sym.kind == CompletionKind.unionName
@@ -268,36 +238,37 @@ extern(C) export DSymbolInfo[] dcd_document_symbols_sem(const(char)* filename, c
 
         if (it.type != null)
         {
-            //DSymbolInfo info;
-            //info.name = it.type.name;
-            //info.range[0] = it.type.location;
-
+            DSymbolInfo info;
+            info.name = it.type.name;
+            info.range[0] = it.type.location;
             //if (it.type.location_end == 0)
             //    info.range[1] = it.type.location + it.type.name.length;
             //else
             //    info.range[1] = it.type.location_end;
-            //info.kind = it.type.kind;
-            //ret ~= info;
+            info.kind = it.type.kind;
+            ret ~= info;
+        }
+
+        {
+            DSymbolInfo info;
+            info.name = it.name;
+            info.range[0] = it.location;
+            //if (it.location_end == 0)
+            //    info.range[1] = it.location + it.name.length;
+            //else
+            //    info.range[1] = it.location_end;
+
+            info.kind = it.kind;
+            ret ~= info;
         }
 
 
-        DSymbolInfo info;
-        info.name = it.name;
-        info.range[0] = (it.location > e ? it.location - e : e - it.location );
-        
-        e = it.location;
-
-        if (it.location_end == 0)
-            info.range[1] = it.location + it.name.length;
-        else
-            info.range[1] = it.location_end;
-        info.kind = it.kind;
-        ret ~= info;
 
         foreach(sym; it.opSlice())
         {
             if (sym.symbolFile != "stdin") continue;
-            
+            if (sym.generated) continue;
+
             check(sym);
        }
     }
@@ -305,6 +276,7 @@ extern(C) export DSymbolInfo[] dcd_document_symbols_sem(const(char)* filename, c
     foreach (symbol; pair.scope_.symbols)
     {
         if (symbol.symbolFile != "stdin") continue;
+        if (symbol.generated) continue;
         check(symbol);
     }
 
@@ -474,4 +446,135 @@ extern(C) export string[] dcd_hover(const(char)* filename, const(char)* content,
         }
     }
     return ret;
+}
+
+
+
+struct Diagnostic
+{
+    DiagnosticSeverity severity;
+    string message;
+    size_t[2] range;
+    size_t line;
+    size_t column;
+    bool use_range;
+}
+
+enum DiagnosticSeverity {
+    Error = 1,
+    Warning = 2,
+    Information = 3,
+    Hint = 4,
+}
+
+
+ModuleCache cache_scanner;
+extern(C) Diagnostic[] dcd_diagnostic(const(char)* buffer)
+{
+
+
+    auto so = stdout;
+    stdout = stderr;
+    scope(exit) stdout = so;
+
+    import containers.ttree : TTree;
+    import containers.hashset;
+    import dcd.server.autocomplete.util;
+
+    import dparse.lexer;
+    import dparse.rollback_allocator;
+    import dparse.ast;
+    import dparse.parser;
+
+    import dsymbol.builtin.names;
+    import dsymbol.builtin.symbols;
+    import dsymbol.conversion;
+    import dsymbol.modulecache;
+    import dsymbol.scope_;
+    import dsymbol.string_interning;
+    import dsymbol.symbol;
+    //import dsymbol.ufcs;
+    import dsymbol.utils;
+
+    import dcd.common.constants;
+    import dcd.common.messages;
+
+    import dcd.server.dscanner.analysis.base;
+    import dcd.server.dscanner.analysis.run;
+    import dcd.server.dscanner.analysis.config;
+    import dcd.server.dscanner.utils;
+
+
+    auto sourceCode = cast(ubyte[]) fromStringz(buffer);
+    auto sc = StringCache(sourceCode.length.optimalBucketCount);
+
+    auto staticAnalyze = true;
+
+    Diagnostic[] ret;
+
+
+    try {
+
+        LexerConfig lc;
+        lc.fileName = "stdin";
+        lc.stringBehavior = StringBehavior.source;
+        // auto tokens = getTokensForParser(sourceCode, lc, &sc);
+
+        // auto ok = syntaxCheckNoPrint(["stdin"], "pretty", sc, cache_scanner);
+
+        // dscanner
+        StaticAnalysisConfig config = defaultStaticAnalysisConfig();
+        {
+
+            RollbackAllocator r;
+            uint errorCount;
+            uint warningCount;
+            const(Token)[] tokens;
+
+
+            auto writeMessages = delegate(string fileName, size_t line, size_t column, string message, bool isError){
+                // TODO: proper index and column ranges
+                Diagnostic diag;
+                diag.severity = isError ? DiagnosticSeverity.Error : DiagnosticSeverity.Warning;
+                diag.message = message;
+                diag.line = line;
+                diag.column = column;
+                ret ~= diag;
+            };
+
+
+            const Module m = parseModule(lc.fileName, sourceCode, &r, sc, tokens, writeMessages,
+                    null, &errorCount, &warningCount);
+            assert(m);
+            if (errorCount > 0 || (staticAnalyze && warningCount > 0))
+            {
+                // errors???
+            }
+            MessageSet results = analyze(lc.fileName, m, config, cache_scanner, tokens, staticAnalyze);
+            if (results !is null)
+            foreach (result; results[])
+            {
+                // all ~= messageFunctionFormatNoPrint(errorFormat, result, false, code);
+                Diagnostic diag;
+                diag.severity = DiagnosticSeverity.Hint;
+                diag.message = result.diagnostic.message;
+                diag.range[0] = result.diagnostic.startIndex;
+                diag.range[1] = result.diagnostic.endIndex;
+                diag.use_range = true;
+                ret ~= diag;
+                warning(" ddd: ", diag);
+            }
+
+            warning("diagnostiscs: ", results ? results.length : 0);
+        }
+        //
+    } catch (Exception e) {
+        warning("can't parse this doc");
+    } catch (Error e) {
+        warning("can't parse this doc");
+    }
+
+
+    return ret;
+
 }

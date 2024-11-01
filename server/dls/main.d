@@ -23,7 +23,7 @@ import dls.completion;
 import dls.document_symbols;
 import dls.definition;
 import dls.hover;
-//import dls.semantic_tokens;
+import dls.semantic_tokens;
 
 version (linux)
     pragma(lib, "server/dls/libdcd.a");
@@ -45,11 +45,14 @@ extern(C) void* j_alloc(size_t sz) {
 extern(C) void j_free(void* ptr) {
 }
 
-
-
 extern(C) void main(int argc, char** argv) {
 
-    LOG_FLAG.info = 0;
+    LOG_FLAG.info = false;
+    LOG_FLAG.warn = true;
+    LOG_FLAG.erro = true;
+
+    import rt.crash_handler;
+    rt_register_crash_handler(null);
 
     arena = mem.ArenaAllocator.create(mem.c_allocator);
     // TODO: remove this
@@ -194,12 +197,12 @@ void handle_request(C.cJSON* request) {
     else if (strcmp(method, "textDocument/didSave") == 0) {
         lsp_did_save(params_json);
     }
-    //else if (strcmp(method, "textDocument/semanticTokens/full") == 0) {
-    //    lsp_semantic_tokens(id, params_json, true);
-    //}
-    //else if (strcmp(method, "textDocument/semanticTokens/range") == 0) {
-    //    lsp_semantic_tokens(id, params_json, false);
-    //}
+    else if (strcmp(method, "textDocument/semanticTokens/full") == 0) {
+        lsp_semantic_tokens(id, params_json, true);
+    }
+    else if (strcmp(method, "textDocument/semanticTokens/range") == 0) {
+        lsp_semantic_tokens(id, params_json, false);
+    }
     else if (strcmp(method, "dls/imports") == 0) {
         lsp_imports(id, params_json);
     }
@@ -406,7 +409,7 @@ void lsp_sync_change(C.cJSON* params_json) {
     }
 
     BUFFER buffer = update_buffer(uri, text);
-    //lsp_lint(buffer);
+    lsp_lint(buffer);
 }
 
 void lsp_sync_close(C.cJSON* params_json) {
@@ -421,7 +424,7 @@ void lsp_sync_close(C.cJSON* params_json) {
     }
 
     close_buffer(uri);
-    //lsp_lint_clear(uri);
+    lsp_lint_clear(uri);
 }
 
 
@@ -502,6 +505,90 @@ void lsp_send_response(int id, C.cJSON* result) {
     LINFO("sent:\n{}", buffer);
 }
 
+void lsp_lint(BUFFER buffer) {
+
+
+    auto buferSTR = cast(string) buffer.content[0..strlen(buffer.content)];
+
+    auto params = C.cJSON_CreateObject();
+    C.cJSON_AddStringToObject(params, "uri", buffer.uri);
+    auto diagnostics = C.cJSON_AddArrayToObject(params, "diagnostics");
+
+
+    // parse(diagnostics, buffer.content);
+
+    auto diag = dcd_diagnostic(buffer.content);
+    foreach(ref it; diag)
+    {
+        auto diagnostic = C.cJSON_CreateObject();
+
+
+        // Range
+        auto range = C.cJSON_AddObjectToObject(diagnostic, "range");
+        auto start_position = C.cJSON_AddObjectToObject(range, "start");
+        if (it.use_range)
+        {
+            auto s = bytesToPosition(buferSTR, it.range[0]);
+            C.cJSON_AddNumberToObject(start_position, "line", s.line);
+            C.cJSON_AddNumberToObject(start_position, "character", s.character);
+        }
+        else {
+            C.cJSON_AddNumberToObject(start_position, "line", it.line-1);
+            C.cJSON_AddNumberToObject(start_position, "character", it.column);
+        }
+        auto end_position = C.cJSON_AddObjectToObject(range, "end");
+        if (it.use_range)
+        {
+            auto e = bytesToPosition(buferSTR, it.range[1]);
+            C.cJSON_AddNumberToObject(end_position, "line", e.line);
+            C.cJSON_AddNumberToObject(end_position, "character", e.character);
+        }
+        else {
+            C.cJSON_AddNumberToObject(end_position, "line", it.line-1);
+            C.cJSON_AddNumberToObject(end_position, "character", it.column);
+        }
+        // Severity
+        C.cJSON_AddNumberToObject(diagnostic, "severity", it.severity);
+        // Message
+        C.cJSON_AddStringToObject(diagnostic, "message", mem.dupe_add_sentinel(arena.allocator(), it.message).ptr);
+
+        C.cJSON_AddItemToArray(diagnostics, diagnostic);
+    }
+
+
+
+    lsp_send_notification("textDocument/publishDiagnostics", params);
+}
+
+void lsp_lint_clear(const char *uri) {
+    auto params = C.cJSON_CreateObject();
+    C.cJSON_AddStringToObject(params, "uri", uri);
+    C.cJSON_AddArrayToObject(params, "diagnostics");
+    lsp_send_notification("textDocument/publishDiagnostics", params);
+}
+
+
+void lsp_send_notification(const(char)* method, C.cJSON* params)
+{
+    auto response = C.cJSON_CreateObject();
+    C.cJSON_AddStringToObject(response, "jsonrpc", "2.0");
+    C.cJSON_AddStringToObject(response, "method", method);
+    if (params != null)
+        C.cJSON_AddItemToObject(response, "params", params);
+    else
+        C.cJSON_AddNullToObject(response, "params" );
+
+    char* output = C.cJSON_PrintUnformatted(response);
+    C.cJSON_Minify(output);
+    auto len = strlen(output);
+
+    char[] buffer = arena.allocator().alloc!(char)(len + 512);
+    buffer[] = '\0';
+
+    sprintf(buffer.ptr, "Content-Length: %u\r\n\r\n%s\0", cast(uint) len, output);
+    fwrite(buffer.ptr, 1, strlen(buffer.ptr), stdout);
+    fflush(stdout);
+}
 
 // HELPERS
 
@@ -607,6 +694,8 @@ enum KStruct = 22;
 enum KEvent = 23;
 enum KOperator = 24;
 enum KTypeParameter = 25;
+
+
 
 enum TEST_DIDOPEN = `{"jsonrpc":"2.0","method":"textDocument/didOpen","params":{"textDocument":{"uri":"file:///home/ryuukk/tmp/fuck.d","languageId":"d","version":125,"text":"\n\n\nstruct State\n{\n    int aaaaaaaaaaaaaaa;\n    int bbbbbbbbbbbbbbb;\n    int ccccccccccccccc;\n}\n\n\n\nvoid main()\n{\n    State st;\n\n    st.aa\n}"}}}`;
 enum TEST_DIDCHANGE = `{"jsonrpc":"2.0","method":"textDocument/didChange","params":{"textDocument":{"uri":"file:///home/ryuukk/tmp/fuck.d","version":126},"contentChanges":[{"text":"\n\n\nstruct State\n{\n    int aaaaaaaaaaaaaaa;\n    int bbbbbbbbbbbbbbb;\n    int ccccccccccccccc;\n}\n\n\n\nvoid main()\n{\n    State st;\n\n    st.aaa\n}"}]}}`;

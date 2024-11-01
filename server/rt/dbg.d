@@ -8,9 +8,9 @@ version = DBG_FILE_ONLY;
 
 struct LogFlag
 {
-    uint info: 1;
-    uint warn: 1;
-    uint erro: 1;
+    bool info: 1;
+    bool warn: 1;
+    bool erro: 1;
 }
 
 __gshared LogFlag LOG_FLAG;

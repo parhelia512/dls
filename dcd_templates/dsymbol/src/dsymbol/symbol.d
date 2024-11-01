@@ -20,6 +20,7 @@ module dsymbol.symbol;
 
 import std.array;
 
+import std.experimental.logger;
 import std.experimental.allocator.mallocator : Mallocator;
 import std.experimental.allocator.gc_allocator : GCAllocator;
 import containers.ttree;
@@ -365,7 +366,10 @@ struct DSymbol
 	{
 		auto r = collection.equalRange(UpdatePair(type, null));
 		if (!r.empty)
-			type = r.front.newSymbol;
+		{
+            warning("update: ", type.name," to ", r.front.newSymbol.name);
+            type = r.front.newSymbol;
+        }
 		foreach (part; parts[])
 			part.updateTypes(collection);
 	}
@@ -570,15 +574,31 @@ alias UpdatePairCollection = TTree!(UpdatePair, UpdatePairCollectionAllocator, f
 
 void generateUpdatePairs(DSymbol* oldSymbol, DSymbol* newSymbol, ref UpdatePairCollection results)
 {
-	results.insert(UpdatePair(oldSymbol, newSymbol));
-	foreach (part; oldSymbol.parts[])
-	{
-		auto temp = DSymbol(oldSymbol.name);
-		auto r = newSymbol.parts.equalRange(SymbolOwnership(&temp));
-		if (r.empty)
-			continue;
-		generateUpdatePairs(part, r.front, results);
-	}
+    results.insert(UpdatePair(oldSymbol, newSymbol));
+    foreach (part; oldSymbol.opSlice())
+    {
+        bool has = false;
+        DSymbol* r = null;
+        foreach (newPart; newSymbol.opSlice())
+        {
+            if(part == newPart)
+            {
+                has = true;
+                r = newPart;
+                break;
+            }
+
+            if (part.name == newPart.name && part.kind == newPart.kind)
+            {
+                has = true;
+                r = newPart;
+                break;
+            }
+        }
+        if (!has) continue;
+
+        generateUpdatePairs(part, r, results);
+    }
 }
 
 struct SymbolOwnership

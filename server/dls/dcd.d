@@ -7,7 +7,28 @@ extern(C) void dcd_add_imports(string[] importPaths);
 extern(C) void dcd_clear(string[] importPaths);
 
 extern(C) void dcd_on_save(const(char)* filename, const(char)* content);
+
+extern(C) void dcd_on_save(const(char)* filename, const(char)* content);
 extern(C) AutocompleteResponse dcd_complete(const(char)* filename, const(char)* content, int position);
+
+
+extern(C) Diagnostic[] dcd_diagnostic(const(char)* buffer);
+struct Diagnostic
+{
+    DiagnosticSeverity severity;
+    string message;
+    size_t[2] range;
+    size_t line;
+    size_t column;
+    bool use_range;
+}
+
+enum DiagnosticSeverity {
+    Error = 1,
+    Warning = 2,
+    Information = 3,
+    Hint = 4,
+}
 
 struct AutocompleteResponse {
     static struct Completion {

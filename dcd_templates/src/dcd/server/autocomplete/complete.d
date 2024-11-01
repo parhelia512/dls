@@ -63,8 +63,7 @@ enum CalltipHint {
  * Returns:
  *     the autocompletion response
  */
-public AutocompleteResponse complete(const AutocompleteRequest request,
-	ref ModuleCache moduleCache)
+public AutocompleteResponse complete(const AutocompleteRequest request, ref ModuleCache moduleCache)
 {
 	import std.stdio;
 	import core.memory: GC;
@@ -72,6 +71,8 @@ public AutocompleteResponse complete(const AutocompleteRequest request,
 	//writeln("\n\n-----");
 	//scope (exit)
 	//writeln("-----\n\n\n");
+
+    warning("# complete");
 
 	const(Token)[] tokenArray;
 	auto stringCache = StringCache(request.sourceCode.length.optimalBucketCount);
@@ -239,14 +240,15 @@ AutocompleteResponse dotCompletion(T)(T beforeTokens, const(Token)[] tokenArray,
 		auto expression = getExpression(beforeTokens);
 
 
-		foreach(s; pair.scope_.symbols())
-		{
-			if (s.ptr.name == "Data")
-			{
-				foreach(it; s.ptr.opSlice())
-					warning("  ", it.name," ", it.kind," ",it.qualifier);
-			}
-		}
+		//foreach(s; pair.scope_.symbols())
+		//{
+		//	//if (s.ptr.name == "Data")
+        //    warning(s.ptr.name);
+		//	{
+		//		foreach(it; s.ptr.opSlice())
+		//			warning("  ", it.name," ", it.kind," ",it.qualifier);
+		//	}
+		//}
 
 
 		response.setCompletions(pair.scope_, expression, cursorPosition, CompletionType.identifiers, CalltipHint.none, partial);
@@ -626,8 +628,7 @@ void setCompletions(T)(ref AutocompleteResponse response,
 	CompletionType completionType, CalltipHint callTipHint = CalltipHint.none,
 	string partial = null)
 {
-	static void addSymToResponse(const(DSymbol)* s, ref AutocompleteResponse r, string p,
-		Scope* completionScope, size_t[] circularGuard = [])
+	static void addSymToResponse(const(DSymbol)* s, ref AutocompleteResponse r, string p, Scope* completionScope, size_t[] circularGuard = [])
 	{
 		if (circularGuard.canFind(cast(size_t) s))
 			return;

@@ -37,7 +37,7 @@ import dsymbol.modulecache;
 import dsymbol.scope_;
 import dsymbol.string_interning;
 import dsymbol.symbol;
-import dsymbol.ufcs;
+//import dsymbol.ufcs;
 import dsymbol.utils;
 
 enum ImportKind : ubyte
@@ -120,6 +120,29 @@ istring stringToken()(auto ref const Token a)
 auto getTokensBeforeCursor(const(ubyte[]) sourceCode, size_t cursorPosition,
 	ref StringCache cache, out const(Token)[] tokenArray)
 {
+    // HACK: struct TTT{  Typ| } <- no completion unless there is a ';'
+    auto modify = cast(ubyte[]) sourceCode;
+    if (cursorPosition < sourceCode.length
+        && (
+            sourceCode[cursorPosition] == '\n'
+            || sourceCode[cursorPosition] == '\r'
+            || sourceCode[cursorPosition] == '\t'
+            || sourceCode[cursorPosition] == ' '
+        )
+    )
+    {
+        modify[cursorPosition] = cast(ubyte)';';
+    }
+
+    //size_t a = cursorPosition;
+    //while(a > 0)
+    //{
+    //    if (modify[a] ==' ' || modify[a] == '\n')
+    //        break;
+    //    modify[a] = cast(ubyte) ' ';
+    //    a--;
+    //}
+
 	LexerConfig config;
 	config.fileName = "";
 	tokenArray = getTokensForParser(cast(ubyte[]) sourceCode, config, &cache);

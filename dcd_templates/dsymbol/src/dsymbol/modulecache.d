@@ -20,6 +20,7 @@ module dsymbol.modulecache;
 
 import containers.dynamicarray;
 import containers.hashset;
+import containers.hashmap;
 import containers.ttree;
 import containers.unrolledlist;
 import dsymbol.conversion;
@@ -146,7 +147,7 @@ struct ModuleCache
 	/**
 	 * Caches the module at the given location
 	 */
-	DSymbol* cacheModule(string location, istring[] modsToUpdate = null)
+	DSymbol* cacheModule(string location)
 	{
 		import std.stdio : File;
 		import core.memory: GC;
@@ -221,14 +222,49 @@ struct ModuleCache
 		CacheEntry* oldEntry = getEntryFor(cachedLocation);
 		if (oldEntry !is null)
 		{
+            foreach(d; oldEntry.dependencies[])
+            {
+                //warning("    dep: ", d);
+            }
 			// Generate update mapping from the old symbol to the new one
 			UpdatePairCollection updatePairs;
 			generateUpdatePairs(oldEntry.symbol, newEntry.symbol, updatePairs);
 
+
+            HashSet!(immutable(char)*) rg;
+            void update_dependen(istring l)
+            {
+                if (rg.contains(&l.data[0]))
+                    return;
+                rg.insert(&l.data[0]);
+                foreach(c; cache[])
+                {
+                    if (c.dependencies.contains(l))
+                    {
+                        warning("  update dep sp:", c.path);
+                        c.symbol.updateTypes(updatePairs);
+                        update_dependen(c.path);
+                    }
+                }
+            }
+
+            foreach(c; cache[])
+            {
+                if (c.dependencies.contains(cachedLocation)) {
+
+                    warning("  update dep:", c.path);
+                    c.symbol.updateTypes(updatePairs);
+                    update_dependen(c.path);
+                }
+            }
+
 			// Apply updates to all symbols in modules that depend on this one
-            cache[].filter!(a => a.dependencies.contains(cachedLocation)).each!(
-                upstream => upstream.symbol.updateTypes(updatePairs)
-            );
+            //cache[].filter!(a => a.dependencies.contains(cachedLocation)).each!(
+            //    upstream => {
+
+            //        upstream.symbol.updateTypes(updatePairs);
+            //    }
+            //);
 
 			// Remove the old symbol.
 			cache.remove(oldEntry, entry => CacheAllocator.instance.dispose(entry));
@@ -243,6 +279,95 @@ struct ModuleCache
 
 		return newEntry.symbol;
 	}
+
+
+    DSymbol* getModuleeee(string mod)
+    {
+        auto loc = istring(mod);
+        CacheEntry* oldEntry = getEntryFor(loc);
+        if (oldEntry) return oldEntry.symbol;
+        return null;
+    }
+    DSymbol* cacheModuleAAA(string mod, bool parse = false)
+    {
+        import std.stdio : File;
+        import core.memory: GC;
+        import dparse.rollback_allocator: RollbackAllocator;
+        import std.string: fromStringz;
+
+
+        auto loc = istring(mod);
+        string source;
+
+        if (recursionGuard.contains(&loc.data[0]))
+            return null;
+
+        recursionGuard.insert(&loc.data[0]);
+
+        if (source_cache.containsKey(mod))
+        {
+            source = source_cache[mod];
+        }
+        else
+        {
+            warning("read file: ", mod);
+            File f = File(mod);
+            auto fileSize = cast(size_t) f.size;
+            ubyte[] data = cast(ubyte[]) Mallocator.instance.allocate(fileSize + 1);
+            data[] = 0;
+            scope (exit) Mallocator.instance.deallocate(data);
+            f.rawRead(data);
+            source = cast(string)fromStringz(cast(char[]) data);
+
+            source_cache[mod] = source;
+        }
+
+
+        CacheEntry* oldEntry = getEntryFor(loc);
+        CacheEntry* newEntry = CacheAllocator.instance.make!CacheEntry();
+        auto parseStringCache = StringCache(source.length.optimalBucketCount);
+        LexerConfig config;
+        config.fileName = loc;
+        auto tokens = getTokensForParser(
+                (source.length >= 3 && source[0 .. 3] == "\xef\xbb\xbf"c)
+                ? source[3 .. $] : source,
+                config, &parseStringCache);
+
+        RollbackAllocator parseAllocator;
+        Module m = parseModuleSimple(tokens[], loc, &parseAllocator);
+
+        scope first = new FirstPass(m, loc, &this, newEntry);
+        first.run();
+
+        secondPass(first.rootSymbol, first.rootSymbol, first.moduleScope, this);
+        //typeid(Scope).destroy(first.moduleScope);
+
+        newEntry.symbol = first.rootSymbol.acSymbol;
+        newEntry.modificationTime = SysTime.max;
+        newEntry.path = loc;
+
+        if (oldEntry !is null)
+        {
+            // Generate update mapping from the old symbol to the new one
+            UpdatePairCollection updatePairs;
+            generateUpdatePairs(oldEntry.symbol, newEntry.symbol, updatePairs);
+
+            // Apply updates to all symbols in modules that depend on this one
+            cache[].filter!(a => a.dependencies.contains(loc)).each!(
+                upstream => upstream.symbol.updateTypes(updatePairs)
+            );
+
+            cache.remove(oldEntry, entry => CacheAllocator.instance.dispose(entry));
+        }
+
+        cache.insert(newEntry);
+
+        resolveDeferredTypes(loc);
+        recursionGuard.remove(&loc.data[0]);
+        //typeid(SemanticSymbol).destroy(first.rootSymbol);
+
+        return first.rootSymbol.acSymbol;
+    }
 
 	/**
 	 * Resolves types for deferred symbols
@@ -390,6 +515,9 @@ struct ModuleCache
 		auto r = cache.equalRange(&dummy);
 		return r.empty ? null : r.front;
 	}
+
+
+
 private:
 
 
@@ -414,44 +542,6 @@ private:
 		SysTime access;
 		SysTime modification;
 		getTimes(mod.data, access, modification);
-
-		bool isPackage = mod.data.endsWith("package.d");
-		//warning("checking: ", mod);
-		foreach(it; m.opSlice())
-		{
-			bool dirty = false;
-			it.getPublicImports( (p) {
-                    if (p.symbolFile.length == 0)
-                        return;
-					auto ee = getEntryFor(p.symbolFile);
-					//warning("  pi: ", p.name, " ", p.symbolFile);
-					if (ee)
-					{
-						if (ee.modificationTime > modification) 
-						{
-                            dirty = true;
-                            warning("    reparse: ", mod, " :: ", p.symbolFile);
-                        }
-					}
-					else warning("  none ", p.name, " ", p.kind, p.symbolFile, " t:", p.type.name, " ", p.type.kind," ", p.type.symbolFile);
-				}
-			);
-
-			//if (isPackage)
-			//{
-			//	auto ee = getEntryFor(it.symbolFile);
-
-			//	if (ee && ee.modificationTime > modification) 
-			//	{
-            //        dirty = true;
-            //    }
-			//}
-
-
-			if (dirty) return true;
-		}
-
-
 		return r.front.modificationTime != modification;
 	}
 
@@ -496,7 +586,8 @@ private:
 	// Mapping of file paths to their cached symbols.
 	alias CacheAllocator = GCAllocator; // NOTE using `Mallocator` here fails when analysing Phobos as `Segmentation fault (core dumped)`
 	alias Cache = TTree!(CacheEntry*, CacheAllocator);
-	Cache cache;
+	public Cache cache;
+    public HashMap!(string, string, GCAllocator) source_cache;
 
 	HashSet!(immutable(char)*) recursionGuard;
 

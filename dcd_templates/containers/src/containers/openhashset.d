@@ -224,7 +224,7 @@ private:
 	{
 		ET front()
 		{
-			return cast(typeof(return)) nodes[index].data;
+			return nodes[index].data;
 		}
 
 		bool empty() const pure nothrow @safe @nogc @property

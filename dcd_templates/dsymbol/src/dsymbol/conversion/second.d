@@ -41,12 +41,12 @@ void DBG(F, A...)(F f, A args)
 {
     //debug io.writeln(f, args);
 }
-void writeln(F, A...)(F f, A args)
+package void writeln(F, A...)(F f, A args)
 {
     //debug io.writeln(f, args);
 }
 
-void write(F, A...)(F f, A args)
+package void write(F, A...)(F f, A args)
 {
     //debug io.write(f, args);
 }
@@ -55,7 +55,7 @@ void print_tab(int index)
 {
     //debug index +=1;
     //debug enum C = 4;
-    //debug for(int i =0; i < index*4; i++) io.write(" "); 
+    //debug for(int i =0; i < index*4; i++) io.write(" ");
 }
 
 
@@ -137,6 +137,7 @@ void secondPass(SemanticSymbol* rootModule, SemanticSymbol* currentSymbol, Scope
 	// so that childs have access to resolved symbols
 	// functions should be last, because inside, there might be symbols that references
 	// code from the parent not yet resolved (templates)
+    if (currentSymbol && currentSymbol.children.length)
 	foreach (child; currentSymbol.children)
 		if (child.acSymbol.kind != CompletionKind.variableName && child.acSymbol.kind != CompletionKind.functionName)
 			secondPass(rootModule, child, moduleScope, cache);
@@ -332,7 +333,7 @@ DSymbol* createTypeWithTemplateArgs(DSymbol* type, TypeLookup* lookup, VariableC
 
 				//print_tab(depth);writeln(">> ok");
 				auto ca = ti.args[count];
-				if (ca.chain.length > 0) 
+				if (ca.chain.length > 0)
 				{
 					int indepth = depth + 1;
 					auto stomap = isBuiltin ? first : createTypeWithTemplateArgs(first, lookup, ca, cache, moduleScope, indepth, null);
@@ -394,7 +395,7 @@ DSymbol* createTypeWithTemplateArgs(DSymbol* type, TypeLookup* lookup, VariableC
 		{
 			T_names ~= part.name;
 		}
-		else 
+		else
 		if (part.type && part.type.kind == CompletionKind.typeTmpParam)
 		{
 
@@ -627,7 +628,10 @@ in
 }
 do
 {
+
 	DSymbol* moduleSymbol = cache.cacheModule(acSymbol.symbolFile);
+
+
 	// store the module that imports it if it is a public import
 	if (rootModule && moduleSymbol) // public import
 	{

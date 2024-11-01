@@ -12,7 +12,7 @@
     ":common": "*",
     ":emsi_containers": "*"
   },
-  "subPackages": ["dsymbol", "libdparse", "common", "containers", "msgpack-d"],
+  "subPackages": ["dsymbol", "libdparse", "common", "containers"],
   "versions": ["built_with_dub"],
   "configurations": [
     {

@@ -156,6 +156,7 @@ void lsp_completion(int id, cjson.cJSON * params_json) {
         cjson.cJSON_AddStringToObject(item, "label", mem.dupe_add_sentinel(allocator, completion.identifier).ptr);
         cjson.cJSON_AddNumberToObject(item, "kind", lspKind);
         cjson.cJSON_AddStringToObject(item, "sortText", mem.dupe_add_sentinel(allocator, sortText).ptr);
+        cjson.cJSON_AddStringToObject(item, "filterText", mem.dupe_add_sentinel(allocator, completion.identifier).ptr);
         auto labelDetails = cjson.cJSON_AddObjectToObject(item, "labelDetails");
 
         cjson.cJSON_AddStringToObject(labelDetails, "detail", detail.length == 0 ? "" :  mem.dupe_add_sentinel(allocator, detail).ptr);

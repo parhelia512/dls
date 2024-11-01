@@ -186,7 +186,7 @@
         "class-identifier": {
             "patterns": [
                 {
-                    "match": "(?<!\\$)\\b(bool|num|uint|int|ushort|short|long|ulong|float|ubyte|byte|char|double|size_t|string|str|ptrdiff_t|isize|usize|u8|u16|u32|u64|i8|i16|i32|i64|f32|f64)\\b(?!\\$)",
+                    "match": "(?<!\\$)\\b(bool|num|uint|int|ushort|short|long|ulong|float|ubyte|byte|char|double|size_t|string|str|ptrdiff_t|isize|usize|u8|u16|u32|u64|i8|i16|i32|i64|f32|f64|quat|vec2|vec3|mat4|mat3)\\b(?!\\$)",
                     "name": "support.class.d"
                 },
                 {
@@ -282,6 +282,14 @@
                 {
                     "name": "keyword.control.assert.d",
                     "match": "(?<!\\$)\\bassert\\b(?!\\$)"
+                },
+                {
+                    "name": "keyword.control.debug.d",
+                    "match": "(?<!\\$)\\bdebugt\\b(?!\\$)"
+                },
+                {
+                    "name": "keyword.control.goto.d",
+                    "match": "(?<!\\$)\\bgotot\\b(?!\\$)"
                 },
                 {
                     "name": "keyword.control.panic.d",
@@ -384,7 +392,7 @@
             "patterns": [
                 {
                     "name": "meta.embedded.expression.d",
-                    "match": "\\{\\}"
+                    "match": "{([^}]*)}"
                 },
                 {
                     "name": "constant.character.escape.d",

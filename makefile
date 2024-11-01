@@ -14,6 +14,7 @@ else
 	exe =
 	dll = .so
 	LD_LIBRARY_PATH=.
+	FLAGS_RELEASE += -O3
 endif
 
 MODE ?= DEBUG
@@ -31,6 +32,8 @@ ifeq ($(CHECK), 1)
 endif
 
 
+build-dcd-dls: build-dcd build-dls
+
 build-dls:
 	@$(COMPILER) -of=bin/dls$(exe) $(OPTIMIZE) $(PREVIEWS) -i -Iserver/ \
     server/cjson/cJSON.c server/dls/main.d server/dls/libdcd.a
@@ -43,7 +46,7 @@ build-dcd:
 	mv dcd_templates/libdcd.a server/dls/
 
 build-dls-release:
-	ldmd2 -of=bin/dls$(exe) $(OPTIMIZE) $(PREVIEWS) -i -Iserver/ \
+	ldmd2 -of=bin/dls$(exe) $(FLAGS_RELEASE) $(PREVIEWS) -i -Iserver/ \
     server/cjson/cJSON.c server/dls/main.d server/dls/libdcd.a
 
 build-dcd-release:

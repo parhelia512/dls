@@ -43,7 +43,7 @@ import stdio = std.stdio;
 
 
 
-void writeln(F, A...)(F f, A args)
+package void writeln(F, A...)(F f, A args)
 {
     //debug stdio.writeln(f, args);
 }
@@ -136,34 +136,7 @@ final class FirstPass : ASTVisitor
 	{
 		visitDestructor(des.location, des.functionBody, des.comment);
 	}
-/*
-	override void visit(const VersionCondition vc)
-	{
-		warning("  VersionCondition: ", vc.token.text);
-		vc.accept(this);
-		//versionBuffer.push_back(vc.token.text);
-	}
 
-	override void visit(const ConditionalStatement vc)
-	{
-		warning("  ConditionalStatement: ", vc);
-		vc.accept(this);
-		//versionBuffer.push_back(vc.token.text);
-	}
-
-	override void visit(const ExpressionStatement vc)
-	{
-		warning("  ExpressionStatement: ", vc);
-		vc.accept(this);
-		//versionBuffer.push_back(vc.token.text);
-	}
-	override void visit(const Statement vc)
-	{
-		warning("  Statement: ", vc);
-		vc.accept(this);
-		//versionBuffer.push_back(vc.token.text);
-	}
-*/
 	//override void visit(const FunctionCallExpression fce)
 	//{
 	//	assert(fce);
@@ -466,7 +439,7 @@ final class FirstPass : ASTVisitor
 				lookup.breadcrumbs.insert(istring(iot.templateInstance.identifier.text));
 
 			// TODO: finish handling `iot.templateInstance.templateArguments`
-			if (iot.templateInstance.templateArguments) 
+			if (iot.templateInstance.templateArguments)
 			{
 				if (iot.templateInstance.templateArguments.templateSingleArgument)
 				{
@@ -605,7 +578,7 @@ final class FirstPass : ASTVisitor
             buildChainTemplateOrIdentifier(symbol, lookup, ctx, iot);
         }
 
-		if(ue.unaryExpression) 
+		if(ue.unaryExpression)
 		{
             writeln("built unary");
             traverseUnaryExpression(symbol, lookup, ctx, ue.unaryExpression);
@@ -1069,8 +1042,9 @@ final class FirstPass : ASTVisitor
 				warning("Could not resolve location of module '", importPath.data, "'");
 				continue;
 			}
-			SemanticSymbol* importSymbol = allocateSemanticSymbol(IMPORT_SYMBOL_NAME,
-				CompletionKind.importSymbol, modulePath);
+
+            //warning("### import: ", importPath," ", modulePath," ", protection.currentForImport == tok!"public");
+			SemanticSymbol* importSymbol = allocateSemanticSymbol(IMPORT_SYMBOL_NAME, CompletionKind.importSymbol, modulePath);
 			importSymbol.acSymbol.skipOver = protection.currentForImport != tok!"public";
 			if (single.rename == tok!"")
 			{
@@ -1193,31 +1167,15 @@ final class FirstPass : ASTVisitor
 		}
 	}
 
-	//override void visit(const ConditionalStatement conditionalStatement)
-	//{
-	//    writeln("ConditionalStatement");
-	//    //versionBuffer.pop_front();
-
-	//}
-
 	// Create attribute/protection scope for conditional compilation declaration
 	// blocks.
 	override void visit(const ConditionalDeclaration conditionalDecl)
 	{
 		if (conditionalDecl.compileCondition !is null)
-		{
-			//warning("    ConditionalDeclaration compileCondition");
-			///"conditional declration");
-			//pushScope();
 			visit(conditionalDecl.compileCondition);
-			//currentScope.version_ = currentVersion;
-			//popScope();
-			//writeln("conditional declration end");
-		}
 
-		if (conditionalDecl.trueDeclarations.length > 0)
+		if (conditionalDecl.trueDeclarations.length)
 		{
-			//warning("    ConditionalDeclaration trueDeclarations");
 			protection.beginScope();
 			scope (exit) protection.endScope();
 
@@ -1226,9 +1184,8 @@ final class FirstPass : ASTVisitor
 					visit (decl);
 		}
 
-		if (conditionalDecl.falseDeclarations.length > 0)
+		if (conditionalDecl.falseDeclarations.length)
 		{
-			//warning("    ConditionalDeclaration falseDeclarations");
 			protection.beginScope();
 			scope (exit) protection.endScope();
 
@@ -1394,8 +1351,6 @@ final class FirstPass : ASTVisitor
 	/// Number of symbols allocated
 	uint symbolsAllocated;
 
-    string currentScopeVersion;
-
 private:
 
 	void createConstructor()
@@ -1485,8 +1440,6 @@ private:
 
 	void visitAggregateDeclaration(AggType)(AggType dec, CompletionKind kind)
 	{
-        //string currentVersion = versionBuffer.back();
-        //if (versionRelevantToOS(currentVersion) == false) return;
 		if ((kind == CompletionKind.unionName || kind == CompletionKind.structName) &&
 			dec.name == tok!"")
 		{
@@ -1525,12 +1478,12 @@ private:
 		const TemplateParameters templateParameters,
 		const FunctionBody functionBody, string doc)
 	{
-		pushSymbol(CONSTRUCTOR_SYMBOL_NAME, CompletionKind.functionName, symbolFile, location, null);
-		scope (exit) popSymbol();
-
-		currentSymbol.acSymbol.protection = protection.current;
-		currentSymbol.acSymbol.doc = makeDocumentation(doc);
-		currentSymbol.acSymbol.qualifier = SymbolQualifier.func;
+		SemanticSymbol* symbol = allocateSemanticSymbol(CONSTRUCTOR_SYMBOL_NAME,
+			CompletionKind.functionName, symbolFile, location);
+		symbol.parent = currentSymbol;
+		currentSymbol.addChild(symbol, true);
+		symbol.acSymbol.protection = protection.current;
+		symbol.acSymbol.doc = makeDocumentation(doc);
 
 		istring lastComment = this.lastComment;
 		this.lastComment = istring.init;
@@ -1538,21 +1491,18 @@ private:
 
 		if (functionBody !is null)
 		{
-			size_t start = location + 4;
-			size_t end = functionBody.endLocation;
-			currentSymbol.acSymbol.location = start;
-			currentSymbol.acSymbol.location_end = end;
-
-			pushFunctionScope(functionBody, start);
-			scope (exit) popScope();
-			processParameters(currentSymbol, null,
-					currentSymbol.acSymbol.name, parameters, templateParameters);
+			pushFunctionScope(functionBody, location + 4); // 4 == "this".length
+			scope(exit) popScope();
+			currentSymbol = symbol;
+			processParameters(symbol, null, THIS_SYMBOL_NAME, parameters, templateParameters);
 			functionBody.accept(this);
+			currentSymbol = currentSymbol.parent;
 		}
 		else
 		{
-			processParameters(currentSymbol, null,
-					currentSymbol.acSymbol.name, parameters, templateParameters);
+			currentSymbol = symbol;
+			processParameters(symbol, null, THIS_SYMBOL_NAME, parameters, templateParameters);
+			currentSymbol = currentSymbol.parent;
 		}
 	}
 
@@ -1900,8 +1850,6 @@ private:
 
 	ubyte foreachTypeIndexOfInterest;
 	ubyte foreachTypeIndex;
-
-    CircularBuffer!(string, 32) versionBuffer;
 }
 
 struct ProtectionStack
@@ -2281,87 +2229,4 @@ class ArgumentListVisitor : ASTVisitor
 
 private:
 	FirstPass fp;
-}
-
-
-bool versionRelevantToOS(string currentVersion)
-{
-    version(Windows)
-    {
-        if (currentVersion == "linux") return false;
-        else if (currentVersion == "Darwin") return false;
-        else if (currentVersion == "FreeBSD") return false;
-        else if (currentVersion == "OpenBSD") return false;
-        else if (currentVersion == "Solaris") return false;
-    }
-    version(linux)
-    {
-        if (currentVersion == "Windows") return false;
-        else if (currentVersion == "Darwin") return false;
-        else if (currentVersion == "FreeBSD") return false;
-        else if (currentVersion == "OpenBSD") return false;
-        else if (currentVersion == "Solaris") return false;
-    }
-    version(Darwin)
-    {
-        if (currentVersion == "Windows") return false;
-        else if (currentVersion == "linux") return false;
-        else if (currentVersion == "FreeBSD") return false;
-        else if (currentVersion == "OpenBSD") return false;
-        else if (currentVersion == "Solaris") return false;
-    }
-    return true;
-}
-
-
-struct CircularBuffer(T, size_t CAPACITY)
-{
-    size_t m_front;
-    size_t m_back;
-    size_t m_nextFree;
-    size_t m_size;
-    T[CAPACITY] m_data = T.init;
-
-    T pop_front()
-    {
-        assert(m_size > 0, "Invalid buffer size");
-        auto ret = front();
-
-        m_front = (m_front + 1) % m_data.length;
-        m_size--;
-
-        return ret;
-    }
-
-    void push_back(const ref T value)
-    {
-        assert(m_size < m_data.length, "Buffer full");
-        m_data[m_nextFree] = value;
-        m_back = m_nextFree;
-        m_nextFree = (m_back + 1) % m_data.length;
-
-        m_size++;
-    }
-
-    ref T front()
-    {
-        assert(m_size > 0, "Invalid buffer size");
-        return m_data[m_front];
-    }
-
-    ref T back()
-    {
-        assert(m_size > 0, "Invalid buffer size");
-        return m_data[m_back];
-    }
-
-    size_t size()
-    {
-        return m_size;
-    }
-
-    size_t capacity()
-    {
-        return CAPACITY;
-    }
 }
