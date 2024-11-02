@@ -364,12 +364,22 @@ struct DSymbol
 	 */
 	void updateTypes(ref UpdatePairCollection collection)
 	{
-		auto r = collection.equalRange(UpdatePair(type, null));
-		if (!r.empty)
-		{
-            warning("update: ", type.name," to ", r.front.newSymbol.name);
-            type = r.front.newSymbol;
+		//auto r = collection.equalRange(UpdatePair(type, null));
+		//if (!r.empty)
+		//{
+        //    warning("update: ", type.name," to ", r.front.newSymbol.name, " c:", r);
+        //    type = r.front.newSymbol;
+        //}
+
+        if (type != null)
+        foreach(it; collection[])
+        {
+            if (type == it.newSymbol || (type.name == it.newSymbol.name && type.kind == it.newSymbol.kind))
+            {
+                type = it.newSymbol;
+            }
         }
+
 		foreach (part; parts[])
 			part.updateTypes(collection);
 	}
@@ -581,7 +591,7 @@ void generateUpdatePairs(DSymbol* oldSymbol, DSymbol* newSymbol, ref UpdatePairC
         DSymbol* r = null;
         foreach (newPart; newSymbol.opSlice())
         {
-            if(part == newPart)
+            if(cast(size_t)part == cast(size_t)newPart)
             {
                 has = true;
                 r = newPart;

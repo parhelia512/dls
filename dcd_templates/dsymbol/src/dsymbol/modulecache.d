@@ -251,7 +251,6 @@ struct ModuleCache
             {
                 if (c.dependencies.contains(cachedLocation))
                 {
-
                     warning("  update dep:", c.path);
                     c.symbol.updateTypes(updatePairs);
                     update_dependen(c.path);

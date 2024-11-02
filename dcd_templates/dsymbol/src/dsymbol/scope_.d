@@ -115,8 +115,7 @@ struct Scope
 				{
                     if (!item.ptr.skipOver)
                     {
-                        foreach (i; item.ptr.type.opSlice())
-                            retVal.insert(i);
+                        retVal.insert(item.ptr.type);
                     }
 					else if (item.ptr.qualifier != SymbolQualifier.selectiveImport)
 					{
