@@ -25,6 +25,7 @@ import containers.ttree;
 import containers.unrolledlist;
 import std.algorithm : canFind, any;
 import std.experimental.logger;
+import std.experimental.logger;
 import std.experimental.allocator.gc_allocator : GCAllocator;
 
 struct VersionInfo
@@ -112,7 +113,12 @@ struct Scope
 				}
 				else if (item.ptr.type !is null && item.ptr.kind == CompletionKind.importSymbol)
 				{
-					if (item.ptr.qualifier != SymbolQualifier.selectiveImport)
+                    if (!item.ptr.skipOver)
+                    {
+                        foreach (i; item.ptr.type.opSlice())
+                            retVal.insert(i);
+                    }
+					else if (item.ptr.qualifier != SymbolQualifier.selectiveImport)
 					{
 						foreach (i; item.ptr.type.opSlice())
 							retVal.insert(i);
@@ -138,6 +144,8 @@ struct Scope
 	{
 		import std.array : array, appender;
 		import std.algorithm.iteration : map;
+
+        inout(DSymbol)*[] ret;
 
 		DSymbol s = DSymbol(name);
 		auto er = _symbols.equalRange(SymbolOwnership(&s));

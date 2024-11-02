@@ -247,10 +247,10 @@ struct ModuleCache
                     }
                 }
             }
-
             foreach(c; cache[])
             {
-                if (c.dependencies.contains(cachedLocation)) {
+                if (c.dependencies.contains(cachedLocation))
+                {
 
                     warning("  update dep:", c.path);
                     c.symbol.updateTypes(updatePairs);
