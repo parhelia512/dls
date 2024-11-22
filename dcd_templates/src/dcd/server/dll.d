@@ -138,6 +138,16 @@ extern(C) export DSymbolInfo[] dcd_document_symbols(const(char)* filename, const
     scope(exit) pair.destroy();
 
 
+    bool exist(DSymbol* it)
+    {
+        foreach(ref s; ret)
+        {
+            if (s.name == it.name && s.kind == it.kind) return true;
+        }
+        return false;
+    }
+
+
     void check(DSymbol* it, ref int p, DSymbolInfo* info)
     {
         //for (int i = 0; i < p; i++)
@@ -291,6 +301,8 @@ struct Location
 
 extern(C) export Location[] dcd_definition(const(char)* filename, const(char)* content, int position)
 {
+    import std.algorithm;
+    import std.array;
     import containers.ttree : TTree;
     import containers.hashset;
     import dcd.server.autocomplete.util;
@@ -325,7 +337,7 @@ extern(C) export Location[] dcd_definition(const(char)* filename, const(char)* c
     Location[] ret;
     if (stuff.symbols.length > 0)
     {
-        foreach(sym; stuff.symbols)
+        foreach(sym; stuff.symbols.uniq)
         {
             //fprintf(stderr, "found: %.*s  at: %.*s -> %lu\n", sym.name.length, sym.name.ptr, sym.symbolFile.length, sym.symbolFile.ptr, sym.location);
             ret ~= Location(sym.symbolFile, sym.location);
@@ -351,6 +363,8 @@ string from_kind(CompletionKind kind)
 
 extern(C) export string[] dcd_hover(const(char)* filename, const(char)* content, int position)
 {
+    import std.algorithm;
+    import std.array;
     import containers.ttree : TTree;
     import containers.hashset;
     import dcd.server.autocomplete.util;
@@ -385,7 +399,7 @@ extern(C) export string[] dcd_hover(const(char)* filename, const(char)* content,
     string[] ret;
     if (stuff.symbols.length > 0)
     {
-        foreach(i, sym; stuff.symbols)
+        foreach(sym; stuff.symbols.uniq)
         {
             warning("found: ", sym.name, " k:", sym.kind,"  at: ",sym.symbolFile," -> ", sym.location,"\n    ct: ", sym.callTip,"\n");
             if (sym.type)
@@ -471,7 +485,18 @@ enum DiagnosticSeverity {
 ModuleCache cache_scanner;
 extern(C) Diagnostic[] dcd_diagnostic(const(char)* buffer)
 {
+    import dcd.server.lint.base;
+    import dcd.server.lint.unused;
+    import dcd.server.lint.setup;
+    Diagnostic[] ret;
 
+
+    return ret;
+}
+
+extern(C) Diagnostic[] dcd_diagnostic2(const(char)* buffer)
+{
+    import core.stdc.stdio;
 
     auto so = stdout;
     stdout = stderr;
