@@ -491,112 +491,112 @@ extern(C) Diagnostic[] dcd_diagnostic(const(char)* buffer)
     return ret;
 }
 
-extern(C) Diagnostic[] dcd_diagnostic2(const(char)* buffer)
-{
-    import core.stdc.stdio;
+//extern(C) Diagnostic[] dcd_diagnostic2(const(char)* buffer)
+//{
+//    import core.stdc.stdio;
 
-    auto so = stdout;
-    stdout = stderr;
-    scope(exit) stdout = so;
+//    auto so = stdout;
+//    stdout = stderr;
+//    scope(exit) stdout = so;
 
-    import containers.ttree : TTree;
-    import containers.hashset;
-    import dcd.server.autocomplete.util;
+//    import containers.ttree : TTree;
+//    import containers.hashset;
+//    import dcd.server.autocomplete.util;
 
-    import dparse.lexer;
-    import dparse.rollback_allocator;
-    import dparse.ast;
-    import dparse.parser;
+//    import dparse.lexer;
+//    import dparse.rollback_allocator;
+//    import dparse.ast;
+//    import dparse.parser;
 
-    import dsymbol.builtin.names;
-    import dsymbol.builtin.symbols;
-    import dsymbol.conversion;
-    import dsymbol.modulecache;
-    import dsymbol.scope_;
-    import dsymbol.string_interning;
-    import dsymbol.symbol;
-    //import dsymbol.ufcs;
-    import dsymbol.utils;
+//    import dsymbol.builtin.names;
+//    import dsymbol.builtin.symbols;
+//    import dsymbol.conversion;
+//    import dsymbol.modulecache;
+//    import dsymbol.scope_;
+//    import dsymbol.string_interning;
+//    import dsymbol.symbol;
+//    //import dsymbol.ufcs;
+//    import dsymbol.utils;
 
-    import dcd.common.constants;
-    import dcd.common.messages;
+//    import dcd.common.constants;
+//    import dcd.common.messages;
 
-    import dcd.server.dscanner.analysis.base;
-    import dcd.server.dscanner.analysis.run;
-    import dcd.server.dscanner.analysis.config;
-    import dcd.server.dscanner.utils;
-
-
-    auto sourceCode = cast(ubyte[]) fromStringz(buffer);
-    auto sc = StringCache(sourceCode.length.optimalBucketCount);
-
-    auto staticAnalyze = true;
-
-    Diagnostic[] ret;
+//    import dcd.server.dscanner.analysis.base;
+//    import dcd.server.dscanner.analysis.run;
+//    import dcd.server.dscanner.analysis.config;
+//    import dcd.server.dscanner.utils;
 
 
-    try {
+//    auto sourceCode = cast(ubyte[]) fromStringz(buffer);
+//    auto sc = StringCache(sourceCode.length.optimalBucketCount);
 
-        LexerConfig lc;
-        lc.fileName = "stdin";
-        lc.stringBehavior = StringBehavior.source;
-        // auto tokens = getTokensForParser(sourceCode, lc, &sc);
+//    auto staticAnalyze = true;
 
-        // auto ok = syntaxCheckNoPrint(["stdin"], "pretty", sc, cache_scanner);
-
-        // dscanner
-        StaticAnalysisConfig config = defaultStaticAnalysisConfig();
-        {
-
-            RollbackAllocator r;
-            uint errorCount;
-            uint warningCount;
-            const(Token)[] tokens;
+//    Diagnostic[] ret;
 
 
-            auto writeMessages = delegate(string fileName, size_t line, size_t column, string message, bool isError){
-                // TODO: proper index and column ranges
-                Diagnostic diag;
-                diag.severity = isError ? DiagnosticSeverity.Error : DiagnosticSeverity.Warning;
-                diag.message = message;
-                diag.line = line;
-                diag.column = column;
-                ret ~= diag;
-            };
+//    try {
+
+//        LexerConfig lc;
+//        lc.fileName = "stdin";
+//        lc.stringBehavior = StringBehavior.source;
+//        // auto tokens = getTokensForParser(sourceCode, lc, &sc);
+
+//        // auto ok = syntaxCheckNoPrint(["stdin"], "pretty", sc, cache_scanner);
+
+//        // dscanner
+//        StaticAnalysisConfig config = defaultStaticAnalysisConfig();
+//        {
+
+//            RollbackAllocator r;
+//            uint errorCount;
+//            uint warningCount;
+//            const(Token)[] tokens;
 
 
-            const Module m = parseModule(lc.fileName, sourceCode, &r, sc, tokens, writeMessages,
-                    null, &errorCount, &warningCount);
-            assert(m);
-            if (errorCount > 0 || (staticAnalyze && warningCount > 0))
-            {
-                // errors???
-            }
-            MessageSet results = analyze(lc.fileName, m, config, cache_scanner, tokens, staticAnalyze);
-            if (results !is null)
-            foreach (result; results[])
-            {
-                // all ~= messageFunctionFormatNoPrint(errorFormat, result, false, code);
-                Diagnostic diag;
-                diag.severity = DiagnosticSeverity.Hint;
-                diag.message = result.diagnostic.message;
-                diag.range[0] = result.diagnostic.startIndex;
-                diag.range[1] = result.diagnostic.endIndex;
-                diag.use_range = true;
-                ret ~= diag;
-                warning(" ddd: ", diag);
-            }
-
-            warning("diagnostiscs: ", results ? results.length : 0);
-        }
-        //
-    } catch (Exception e) {
-        warning("can't parse this doc");
-    } catch (Error e) {
-        warning("can't parse this doc");
-    }
+//            auto writeMessages = delegate(string fileName, size_t line, size_t column, string message, bool isError){
+//                // TODO: proper index and column ranges
+//                Diagnostic diag;
+//                diag.severity = isError ? DiagnosticSeverity.Error : DiagnosticSeverity.Warning;
+//                diag.message = message;
+//                diag.line = line;
+//                diag.column = column;
+//                ret ~= diag;
+//            };
 
 
-    return ret;
+//            const Module m = parseModule(lc.fileName, sourceCode, &r, sc, tokens, writeMessages,
+//                    null, &errorCount, &warningCount);
+//            assert(m);
+//            if (errorCount > 0 || (staticAnalyze && warningCount > 0))
+//            {
+//                // errors???
+//            }
+//            MessageSet results = analyze(lc.fileName, m, config, cache_scanner, tokens, staticAnalyze);
+//            if (results !is null)
+//            foreach (result; results[])
+//            {
+//                // all ~= messageFunctionFormatNoPrint(errorFormat, result, false, code);
+//                Diagnostic diag;
+//                diag.severity = DiagnosticSeverity.Hint;
+//                diag.message = result.diagnostic.message;
+//                diag.range[0] = result.diagnostic.startIndex;
+//                diag.range[1] = result.diagnostic.endIndex;
+//                diag.use_range = true;
+//                ret ~= diag;
+//                warning(" ddd: ", diag);
+//            }
 
-}
+//            warning("diagnostiscs: ", results ? results.length : 0);
+//        }
+//        //
+//    } catch (Exception e) {
+//        warning("can't parse this doc");
+//    } catch (Error e) {
+//        warning("can't parse this doc");
+//    }
+
+
+//    return ret;
+
+//}
