@@ -29,9 +29,9 @@ void lsp_initialize(int id) {
 
     auto capabilities = result.add_object("capabilities")
             .add_number("textDocumentSync", 1)
-            .add_number("hoverProvider", 1)
-            .add_number("definitionProvider", 1)
-            .add_number("documentSymbolProvider", 1);
+            .add_bool("hoverProvider", 1)
+            .add_bool("definitionProvider", 1)
+            .add_bool("documentSymbolProvider", 1);
 
     //enable_semantice_tokens(capabilities);
     enable_completion(capabilities);

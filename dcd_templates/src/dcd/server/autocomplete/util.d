@@ -163,17 +163,14 @@ SymbolStuff getSymbolsForCompletion(const AutocompleteRequest request,
 	ref StringCache cache, ref ModuleCache moduleCache)
 {
 	const(Token)[] tokenArray;
-	auto beforeTokens = getTokensBeforeCursor(request.sourceCode,
-		request.cursorPosition, cache, tokenArray);
-	ScopeSymbolPair pair = generateAutocompleteTrees(tokenArray,
-		rba, request.cursorPosition, moduleCache);
+	auto beforeTokens = getTokensBeforeCursor(request.sourceCode, request.cursorPosition, cache, tokenArray);
+	ScopeSymbolPair pair = generateAutocompleteTrees(tokenArray, rba, request.cursorPosition, moduleCache);
 	auto expression = getExpression(beforeTokens);
-	auto symbols = getSymbolsByTokenChain(pair.scope_, expression,
-		request.cursorPosition, type);
-	if (symbols.length == 0 && doUFCSSearch(stringToken(beforeTokens.front), stringToken(beforeTokens.back))) {
-		// Let search for UFCS, since we got no hit
-		symbols ~= getSymbolsByTokenChain(pair.scope_, getExpression([beforeTokens.back]), request.cursorPosition, type);
-	}
+	auto symbols = getSymbolsByTokenChain(pair.scope_, expression, request.cursorPosition, type);
+	//if (symbols.length == 0 && doUFCSSearch(stringToken(beforeTokens.front), stringToken(beforeTokens.back))) {
+	//	// Let search for UFCS, since we got no hit
+	//	symbols ~= getSymbolsByTokenChain(pair.scope_, getExpression([beforeTokens.back]), request.cursorPosition, type);
+	//}
 	return SymbolStuff(symbols, pair.symbol, pair.scope_);
 }
 

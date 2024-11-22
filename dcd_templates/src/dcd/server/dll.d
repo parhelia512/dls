@@ -485,9 +485,6 @@ enum DiagnosticSeverity {
 ModuleCache cache_scanner;
 extern(C) Diagnostic[] dcd_diagnostic(const(char)* buffer)
 {
-    import dcd.server.lint.base;
-    import dcd.server.lint.unused;
-    import dcd.server.lint.setup;
     Diagnostic[] ret;
 
 

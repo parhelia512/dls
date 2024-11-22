@@ -25,14 +25,6 @@ import dls.definition;
 import dls.hover;
 import dls.semantic_tokens;
 
-version (linux)
-    pragma(lib, "server/dls/libdcd.a");
-else version(Windows)
-    pragma(lib, "server/dls/dcd.lib");
-else
-    static assert(0, "platform not yet supported");
-
-
 __gshared:
 
 mem.ArenaAllocator arena;
@@ -224,11 +216,28 @@ void lsp_initialize_params(int id, C.cJSON* params_json)
     LINFO("lsp_initialize_params:\n{}", output);
     dcd_init();
     auto rootPath_json = C.cJSON_GetObjectItem(params_json, "rootPath");
+    auto rootURI_json = C.cJSON_GetObjectItem(params_json, "rootUri");
+
+    bool foundRoot = false;
+
+
     if (!rootPath_json)
     {
         LWARN("no rootPath");
-        return;
     }
+    else {
+        foundRoot = true;
+    }
+
+    if (!rootURI_json)
+    {
+        LWARN("no rootUri");
+    }
+    else {
+        foundRoot = true;
+    }
+
+    if (!foundRoot) return;
 
     auto initializeOptions_json = C.cJSON_GetObjectItem(params_json, "initializationOptions");
     if (!initializeOptions_json)
@@ -263,15 +272,22 @@ void lsp_initialize_params(int id, C.cJSON* params_json)
     }
 
 
-    auto rootPath = C.cJSON_GetStringValue(rootPath_json);
-    auto L_r = strlen(rootPath);
-    auto rootPathStr = cast(string) rootPath[0 .. L_r];
+    string rootPathStr;
 
+    if (rootPath_json) {
+        auto rootPath = C.cJSON_GetStringValue(rootPath_json);
+        auto L_r = strlen(rootPath);
+        rootPathStr = cast(string) rootPath[0 .. L_r];
+    } else if (rootURI_json) {
+        auto rootPath = C.cJSON_GetStringValue(rootURI_json);
+        auto L_r = strlen(rootPath);
+        rootPathStr = cast(string) rootPath[7 .. L_r];
+    }
 
 
     string[] extraImports;
     int size = C.cJSON_GetArraySize(importPaths_json);
-    LINFO("root path: {}", rootPath);
+    LINFO("root path: {}", rootPathStr);
     LINFO("import paths: {}", size);
 
     extraImports = arena.allocator().alloc!(string)(size + 1);
@@ -281,7 +297,7 @@ void lsp_initialize_params(int id, C.cJSON* params_json)
         auto str = C.cJSON_GetStringValue(item);
         auto L_it = strlen(str);
 
-        LINFO("path: {}  {}/{}", str, L_it, L_r);
+        LINFO("path: {}  {}/{}", str, L_it, 0);
 
         if (L_it > 1)
         {

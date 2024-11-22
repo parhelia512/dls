@@ -72,7 +72,7 @@ public AutocompleteResponse complete(const AutocompleteRequest request, ref Modu
 	//scope (exit)
 	//writeln("-----\n\n\n");
 
-    warning("# complete");
+	warning("# complete");
 
 	const(Token)[] tokenArray;
 	auto stringCache = StringCache(request.sourceCode.length.optimalBucketCount);
@@ -149,26 +149,26 @@ public AutocompleteResponse complete(const AutocompleteRequest request, ref Modu
 	auto calltipHint = getCalltipHint(beforeTokens, parenIndex);
 
 	final switch (calltipHint) with (CalltipHint) {
-    	case regularArguments, templateArguments, indexOperator:
+		case regularArguments, templateArguments, indexOperator:
 
-    		auto result =  calltipCompletion(beforeTokens[0 .. parenIndex], tokenArray,
-    			request.cursorPosition, moduleCache, calltipHint);
-            return result;
-    	case none:
-    		// could be import or dot completion
-    		if (beforeTokens.length < 2){
-    			break;
-    		}
+			auto result =  calltipCompletion(beforeTokens[0 .. parenIndex], tokenArray,
+				request.cursorPosition, moduleCache, calltipHint);
+			return result;
+		case none:
+			// could be import or dot completion
+			if (beforeTokens.length < 2){
+				break;
+			}
 
-    		ImportKind kind = determineImportKind(beforeTokens);
-    		if (kind == ImportKind.neither)
-    		{
-    			if (beforeTokens.isUdaExpression)
-    				beforeTokens = beforeTokens[$ - 1 .. $];
-    			return dotCompletion(beforeTokens, tokenArray, request.cursorPosition,
-    				moduleCache);
-    		}
-    		return importCompletion(beforeTokens, kind, moduleCache);
+			ImportKind kind = determineImportKind(beforeTokens);
+			if (kind == ImportKind.neither)
+			{
+				if (beforeTokens.isUdaExpression)
+					beforeTokens = beforeTokens[$ - 1 .. $];
+				return dotCompletion(beforeTokens, tokenArray, request.cursorPosition,
+					moduleCache);
+			}
+			return importCompletion(beforeTokens, kind, moduleCache);
 	}
 	return dotCompletion(beforeTokens, tokenArray, request.cursorPosition, moduleCache);
 }
@@ -243,7 +243,7 @@ AutocompleteResponse dotCompletion(T)(T beforeTokens, const(Token)[] tokenArray,
 		//foreach(s; pair.scope_.symbols())
 		//{
 		//	//if (s.ptr.name == "Data")
-        //    warning(s.ptr.name);
+		//    warning(s.ptr.name);
 		//	{
 		//		foreach(it; s.ptr.opSlice())
 		//			warning("  ", it.name," ", it.kind," ",it.qualifier);
@@ -357,23 +357,23 @@ AutocompleteResponse calltipCompletion(T)(T beforeTokens,
 		break;
 	default:
 
-        // TODO: perhaps finish
-        //if (calltipHint == CalltipHint.regularArguments)
-        //{
-        //    RollbackAllocator rba;
-        //    ScopeSymbolPair pair = generateAutocompleteTrees(tokenArray, &rba, cursorPosition, moduleCache);
-        //    scope(exit) pair.destroy();
+		// TODO: perhaps finish
+		//if (calltipHint == CalltipHint.regularArguments)
+		//{
+		//    RollbackAllocator rba;
+		//    ScopeSymbolPair pair = generateAutocompleteTrees(tokenArray, &rba, cursorPosition, moduleCache);
+		//    scope(exit) pair.destroy();
 
-        //    auto s = pair.scope_.getScopeByCursor(cursorPosition);
-        //    writeln(">>> yes");
-        //    foreach(sym; s.symbols)
-        //    {
-        //        if (sym.type)
-        //            writeln("  ", sym.type.name);
-        //    }
-        //    //foreach(it; pair.scope_.parent)
-        //    //writeln();
-        //} 
+		//    auto s = pair.scope_.getScopeByCursor(cursorPosition);
+		//    writeln(">>> yes");
+		//    foreach(sym; s.symbols)
+		//    {
+		//        if (sym.type)
+		//            writeln("  ", sym.type.name);
+		//    }
+		//    //foreach(it; pair.scope_.parent)
+		//    //writeln();
+		//} 
 
 
 		break;
@@ -636,7 +636,17 @@ void setCompletions(T)(ref AutocompleteResponse response,
 		{
 			if (sym.name !is null && sym.name.length > 0 && isPublicCompletionKind(sym.kind)
 				&& (p is null ? true : sym.name.data.startsWith(p))
-				&& !r.completions.canFind!(a => a.identifier == sym.name)
+				&& !r.completions.canFind!((a) {
+					// this filters out similar symbols
+					// this is needed because similar symbols can exist do to version conditionals
+					// fast check first, only compare full definition if it matches
+					bool same = a.identifier == sym.name && a.kind == sym.kind;
+					if (same) {
+						auto info = makeSymbolCompletionInfo(sym, sym.kind);
+						if (info.definition != a.definition) same = false;
+					}
+					return same;
+				})
 				&& sym.name[0] != '*'
 				&& mightBeRelevantInCompletionScope(sym, completionScope))
 			{
@@ -654,6 +664,17 @@ void setCompletions(T)(ref AutocompleteResponse response,
 		auto currentSymbols = completionScope.getSymbolsInCursorScope(cursorPosition);
 		foreach (s; currentSymbols.filter!(a => isPublicCompletionKind(a.kind)
 				&& a.name.data.startsWith(partial)
+				&& !response.completions.canFind!((r) {
+					// this filters out similar symbols
+					// this is needed because similar symbols can exist do to version conditionals
+					// fast check first, only compare full definition if it matches
+					bool same = (r.identifier == a.name && r.kind == a.kind);
+					if (same) {
+						auto info = makeSymbolCompletionInfo(a, a.kind);
+						if (info.definition != r.definition) same = false;
+					}
+					return same;
+				})
 				&& mightBeRelevantInCompletionScope(a, completionScope)))
 		{
 			response.completions ~= makeSymbolCompletionInfo(s, s.kind);
@@ -807,9 +828,9 @@ bool mightBeRelevantInCompletionScope(const DSymbol* symbol, Scope* scope_)
 		return false;
 	}
 
-    import std.stdio;
+	import std.stdio;
 
-    //writeln(symbol.name, scope_.version_, scope_.parent);
+	//writeln(symbol.name, scope_.version_, scope_.parent);
 
 	return true;
 }
