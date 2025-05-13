@@ -113,11 +113,14 @@ struct Scope
 				}
 				else if (item.ptr.type !is null && item.ptr.kind == CompletionKind.importSymbol)
 				{
-                    if (!item.ptr.skipOver)
-                    {
-                        retVal.insert(item.ptr.type);
-                    }
-					else if (item.ptr.qualifier != SymbolQualifier.selectiveImport)
+                    // if public import fucked, restore this
+                    //warning("FUUUUCK: ", item.ptr.name, " -> ", item.ptr.type.name, " skipOver:", item.ptr.skipOver);
+                    //if (!item.ptr.skipOver)
+                    //{
+                    //    retVal.insert(item.ptr.type);
+                    //}
+					//else 
+                    if (item.ptr.qualifier != SymbolQualifier.selectiveImport)
 					{
 						foreach (i; item.ptr.type.opSlice())
 							retVal.insert(i);
