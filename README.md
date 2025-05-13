@@ -11,7 +11,7 @@
 
 # Build
 
-Linux only for now, once ready, i'll setup CI/CD for Linux/macOS/Windows
+Linux and Windows only for now, once ready, i'll setup CI/CD for macOS/FreeBSD asap
 
 
 ```
