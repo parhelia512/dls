@@ -168,7 +168,7 @@
                 },
                 {
                     "name": "constant.numeric.d",
-                    "match": "\\b[0-9][0-9_]*(\\.[0-9][0-9_]*)?([eE][+-]?[0-9_]+|f)?\\b"
+                    "match": "\\b(([0-9][0-9_]*(\\.[0-9_]+)?([eE][+-]?[0-9_]+)?)|(0[xX][0-9a-fA-F_]+(\\.[0-9a-fA-F_]+)?([pP][+-]?[0-9_]+)?))[fFLUu]*\\b"
                 },
                 {
                     "include": "#class-identifier"
@@ -188,10 +188,6 @@
                 {
                     "match": "(?<!\\$)\\b(bool|num|uint|int|ushort|short|long|ulong|float|ubyte|byte|char|double|size_t|string|str|ptrdiff_t|isize|usize|u8|u16|u32|u64|i8|i16|i32|i64|f32|f64|quat|vec2|vec3|mat4|mat3)\\b(?!\\$)",
                     "name": "support.class.d"
-                },
-                {
-                    "match": "(?<!\\$)\\bvoid\\b(?!\\$)",
-                    "name": "storage.type.primitive.d"
                 },
                 {
                     "begin": "(?<![a-zA-Z0-9_$])([_$]*[A-Za-z][a-zA-Z0-9_$]*)\\b(?=\\s*((\\[[^]]*\\]|[*?]|!(\\w+|\\([^)]*\\))|\\{\\})*\\s*)+[a-zA-Z_$][a-zA-Z0-9_$]*)",
@@ -273,7 +269,7 @@
                 },
                 {
                     "name": "keyword.control.d",
-                    "match": "(?<!\\$)\\b(break|case|continue|default|do|else|for|foreach|reverse_foreach|if|in|switch|while|when|version|debug|package|function|delegate|nothrow|pure|__traits|pragma)\\b(?!\\$)"
+                    "match": "(?<!\\$)\\b(break|case|continue|default|do|else|for|foreach|reverse_foreach|if|in|switch|while|when|version|asm|debug|package|function|delegate|nothrow|pure|__traits|pragma)\\b(?!\\$)"
                 },
                 {
                     "name": "keyword.control.d",
@@ -293,7 +289,7 @@
                 },
                 {
                     "name": "keyword.control.panic.d",
-                    "match": "(?<!\\$)\\bpanic\\b(?!\\$)"
+                    "match": "(?<!\\$)\\b(panic|panic_noline)\\b(?!\\$)"
                 },
                 {
                     "name": "keyword.control.new.d",
@@ -310,10 +306,6 @@
                 {
                     "name": "storage.modifier.d",
                     "match": "(?<!\\$)\\b(static|public|private|final|const|ref|immutable|noreturn|scope|auto|required|shared|__gshared|export|extern)\\b(?!\\$)"
-                },
-                {
-                    "name": "storage.type.primitive.d",
-                    "match": "(?<!\\$)\\b(?:void|var)\\b(?!\\$)"
                 }
             ]
         },
