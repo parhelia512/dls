@@ -15,8 +15,8 @@ Linux and Windows only for now, once ready, i'll setup CI/CD for macOS/FreeBSD a
 
 
 ```
-make build-dcd
-make build-dls
+make build-dcd-release
+make build-dls-release
 ```
 
 # Editors
