@@ -38,7 +38,7 @@
 #endif
 
 #ifndef __builtin_fpclassify
-#define __builtin_fpclassify fpclassify
+#define __builtin_fpclassify(x,y,z,w,r, ...)  ((x), (y), (z), (w), (r), 1)
 #endif
 
 #ifndef __builtin_isinf_sign
