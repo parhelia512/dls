@@ -13,7 +13,7 @@ jobs:
     steps:
     - uses: dlang-community/setup-dlang@v2
       with:
-        compiler: ldc-master
+        compiler: ldc-1.39.0
     - uses: actions/checkout@v1
     # - name: Install LDC
     #   run: curl -fsS https://dlang.org/install.sh | bash -s ldc && ls ~/dlang/ && source ~/dlang/ldc*/activate
@@ -39,7 +39,7 @@ jobs:
     steps:
     - uses: dlang-community/setup-dlang@v2
       with:
-        compiler: ldc-master
+        compiler: ldc-1.39.0
     - uses: actions/checkout@v1
     - name: Build DCD
       shell: cmd
