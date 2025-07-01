@@ -37,6 +37,9 @@
 #pragma warning (disable : 4001)
 #endif
 
+#ifndef __builtin_fpclassify
+#define __builtin_fpclassify fpclassify
+#endif
 
 #ifndef __builtin_isinf_sign
 #define __builtin_isinf_sign __isinf
