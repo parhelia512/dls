@@ -35,7 +35,7 @@ jobs:
 
   dist-x86_64-windows:
     timeout-minutes: 30
-    runs-on: windows-2019
+    runs-on: windows-latest
     steps:
     - uses: dlang-community/setup-dlang@v2
       with:
